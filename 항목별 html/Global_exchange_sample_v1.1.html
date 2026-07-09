@@ -90,7 +90,7 @@
     background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);
     transform:translateX(-100%);animation:stripflow 2.4s linear infinite}
   @keyframes stripflow{to{transform:translateX(100%)}}
-  .scene{display:none;padding:18px 28px 16px;animation:sceneIn .6s cubic-bezier(.22,1,.36,1);min-height:0;overflow:hidden}
+  .scene{display:none;padding:14px 24px 12px;animation:sceneIn .6s cubic-bezier(.22,1,.36,1);min-height:0;overflow:hidden}
   .scene.show{display:flex;flex-direction:column;flex:1 1 auto}
   @keyframes sceneIn{from{opacity:0;transform:translateY(22px) scale(.985)}to{opacity:1;transform:none}}
   .scene-head{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:6px;flex:0 0 auto}
@@ -101,8 +101,8 @@
   .scene-badge{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;font-size:11.5px;font-weight:900;white-space:nowrap}
   .scene-badge.live{background:#1d4ed8;color:#fff;border:1px solid rgba(29,78,216,.24);box-shadow:0 8px 18px rgba(29,78,216,.14)}
   .scene-badge.pending{background:#fff1f2;color:#c2410c;border:1px solid #fdba74}
-  .scene-desc{text-align:center;color:#475569;font-size:15px;margin:0 auto 14px;max-width:980px;line-height:1.6;font-weight:600;flex:0 0 auto;word-break:keep-all}
-  .panel-desc{max-width:860px;margin:0 auto 10px;text-align:center;color:#334155;font-size:21px;
+  .scene-desc{text-align:center;color:#475569;font-size:14px;margin:0 auto 10px;max-width:980px;line-height:1.55;font-weight:600;flex:0 0 auto;word-break:keep-all}
+  .panel-desc{max-width:860px;margin:0 auto 8px;text-align:center;color:#334155;font-size:19px;
     line-height:1.58;font-weight:700;flex:0 0 auto;word-break:keep-all;letter-spacing:-.02em}
   .panel-desc b{color:var(--ink)}
   .pending-scene .visual,.pending-scene .wallet-shot-panel,.pending-scene .story-panel{position:relative}
@@ -111,29 +111,29 @@
   .live-scene .wallet-shot-title{background:linear-gradient(135deg,#dbeafe,#ecfdf5);border-color:rgba(37,99,235,.16)}
   .live-scene .story-panel .panel-desc{color:#0f172a}
   .visual{display:flex;align-items:center;justify-content:center;position:relative;flex:1 1 auto;min-height:0}
-  .split-visual{display:grid;grid-template-columns:minmax(460px,620px) minmax(500px,1fr);gap:32px;align-items:center}
-  .split-visual.swap-layout{grid-template-columns:minmax(720px,860px) minmax(420px,1fr);gap:30px}
+  .split-visual{display:grid;grid-template-columns:minmax(520px,700px) minmax(500px,1fr);gap:24px;align-items:center}
+  .split-visual.swap-layout{grid-template-columns:minmax(640px,760px) minmax(440px,1fr);gap:24px}
   .wallet-shot-panel{align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:0;
     background:linear-gradient(180deg,#fff,#f8fafc);border:1px solid var(--line);border-radius:22px;
-    padding:16px 18px 18px;box-shadow:0 14px 34px rgba(15,23,42,.08)}
-  .wallet-shot-title{font-size:15px;font-weight:900;color:var(--ink);margin-bottom:16px;
-    padding:8px 14px;border-radius:999px;background:#f1f5f9;border:1px solid var(--line)}
+    padding:12px 14px 14px;box-shadow:0 14px 34px rgba(15,23,42,.08)}
+  .wallet-shot-title{font-size:14px;font-weight:900;color:var(--ink);margin-bottom:10px;
+    padding:7px 12px;border-radius:999px;background:#f1f5f9;border:1px solid var(--line)}
   .wallet-shot-grid{display:flex;gap:12px;align-items:center;justify-content:center;width:100%}
-  .wallet-shot-grid.swap-grid{gap:14px;justify-content:space-between;flex-wrap:wrap}
-  .wallet-shot{position:relative;width:100%;max-width:min(380px,24vw);max-height:46vh;aspect-ratio:9/16;border-radius:24px;background:#0f172a;
+  .wallet-shot-grid.swap-grid{gap:10px;justify-content:center;flex-wrap:nowrap}
+  .wallet-shot{position:relative;width:100%;max-width:min(430px,28vw);max-height:52vh;aspect-ratio:9/16;border-radius:24px;background:#0f172a;
     padding:8px;box-shadow:0 18px 34px rgba(15,23,42,.22);overflow:hidden}
-  .wallet-shot.small{max-width:250px;max-height:44vh;flex:1 1 0;border-radius:20px;padding:6px}
+  .wallet-shot.small{max-width:280px;max-height:47vh;flex:1 1 0;border-radius:20px;padding:6px}
   .wallet-shot img{width:100%;height:100%;object-fit:contain;border-radius:18px;display:block;background:#fff}
   .wallet-shot.small img{border-radius:14px}
   .shot-fallback{display:none;position:absolute;inset:8px;border-radius:18px;align-items:center;justify-content:center;
     text-align:center;padding:12px;background:#f8fafc;color:var(--sub);font-size:12px;font-weight:800;line-height:1.5}
   .wallet-shot.missing img{display:none}
   .wallet-shot.missing .shot-fallback{display:flex}
-  .story-panel{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;gap:20px}
-  .monitor-layout{display:grid;grid-template-columns:minmax(620px,1fr) minmax(460px,560px);gap:34px;align-items:center}
+  .story-panel{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;gap:14px}
+  .monitor-layout{display:grid;grid-template-columns:minmax(700px,1fr) minmax(420px,520px);gap:24px;align-items:center}
   .monitor-panel{background:linear-gradient(180deg,#fff,#f8fafc);border:1px solid var(--line);border-radius:22px;
-    padding:18px;box-shadow:0 12px 30px rgba(15,23,42,.08)}
-  .monitor-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    padding:14px;box-shadow:0 12px 30px rgba(15,23,42,.08)}
+  .monitor-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .monitor-shot{position:relative;aspect-ratio:16/10;border-radius:16px;background:#0f172a;padding:6px;overflow:hidden;
     box-shadow:0 14px 28px rgba(15,23,42,.18)}
   .monitor-shot img{width:100%;height:100%;object-fit:contain;background:#fff;border-radius:12px;display:block}
@@ -141,7 +141,7 @@
   .monitor-shot.missing img{display:none}
   .monitor-shot.missing .shot-fallback{display:flex}
   .monitor-copy{background:linear-gradient(135deg,#f5f3ff,#ecfdf5);border:1px solid rgba(124,58,237,.18);
-    border-radius:24px;padding:24px 26px;box-shadow:0 16px 34px rgba(15,23,42,.1)}
+    border-radius:24px;padding:20px 22px;box-shadow:0 16px 34px rgba(15,23,42,.1)}
   .monitor-icon{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;
     font-size:27px;background:#fff;color:var(--bc);box-shadow:0 10px 24px rgba(124,58,237,.16);margin-bottom:12px}
   .monitor-copy p{font-size:22px;line-height:1.6;font-weight:800;color:var(--ink);letter-spacing:-.03em}
@@ -164,12 +164,13 @@
   .node .icon.wallet-logo{background:#fff;padding:0;border:1px solid var(--line);overflow:hidden}
   .node .icon.wallet-logo img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block;position:relative;z-index:1}
   .node .icon.wallet-logo .fallback{display:none;font-size:44px;position:relative;z-index:1}
-  .embedded-app{display:flex;flex-direction:column;align-items:center;gap:12px;min-width:256px}
-  .app-shell{width:256px;border-radius:30px;background:#0f172a;padding:11px;box-shadow:0 24px 54px rgba(15,23,42,.26)}
+  .embedded-app{display:flex;flex-direction:column;align-items:center;gap:12px;min-width:280px}
+  .app-shell{width:288px;border-radius:30px;background:linear-gradient(180deg,#ff4b66 0%,#e4002b 100%);padding:12px;box-shadow:0 24px 54px rgba(228,0,43,.24)}
   .app-shell-screen{background:#fff;border-radius:22px;overflow:hidden;border:1px solid rgba(15,23,42,.08)}
   .app-shell-top{background:var(--payco);color:#fff;padding:12px 15px;font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:space-between}
   .app-shell-top span:last-child{font-size:10px;font-weight:800;opacity:.9}
-  .app-shell-body{padding:12px;background:linear-gradient(180deg,#fff,#f8fafc)}
+  .app-shell-body{padding:10px;background:linear-gradient(180deg,#fff,#f8fafc)}
+  .webview-frame-top{background:var(--payco);color:#fff;padding:10px 16px;font-size:14px;font-weight:900;letter-spacing:-.01em;display:flex;align-items:center;justify-content:center}
   .webview-card{border:1px solid #cbd5e1;border-radius:20px;background:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.7),0 10px 24px rgba(15,23,42,.08);overflow:hidden}
   .webview-head{display:flex;align-items:center;justify-content:flex-start;padding:9px 12px;background:#eff6ff;border-bottom:1px solid #dbeafe}
   .webview-badge{font-size:10px;font-weight:900;color:#2563eb;background:#fff;padding:4px 9px;border-radius:999px;border:1px solid #bfdbfe}
@@ -179,6 +180,10 @@
   .webview-logo .fallback{display:none;font-size:26px}
   .webview-title{font-size:13px;font-weight:900;color:var(--ink);text-align:center;line-height:1.3}
   .webview-meta{font-size:11.5px;font-weight:700;color:var(--sub);text-align:center;line-height:1.45}
+  .webview-body.clean{padding:10px;background:#fff}
+  .webview-shot{width:100%;height:372px;border-radius:18px;overflow:hidden;background:#fff}
+  .webview-shot img{width:100%;height:100%;display:block;object-fit:contain;object-position:center top;background:#fff}
+  .webview-shot.crop-top img{transform:translateY(-18px)}
   .embedded-caption{display:inline-flex;align-items:center;justify-content:center;padding:6px 12px;border-radius:999px;
     background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;font-size:12px;font-weight:900;word-break:keep-all}
   .node:hover .icon{transform:translateY(-5px) scale(1.04)}
@@ -188,10 +193,10 @@
   @keyframes slide{0%,100%{transform:translateX(0);opacity:.45}50%{transform:translateX(9px);opacity:1}}
 
   /* PAYCO 앱 목업 */
-  .phone{width:250px;background:#0f172a;border-radius:32px;padding:10px;box-shadow:0 22px 54px rgba(15,23,42,.3);
+  .phone{width:250px;background:linear-gradient(180deg,#ff4b66 0%,#e4002b 100%);border-radius:32px;padding:12px;box-shadow:0 24px 56px rgba(228,0,43,.28);
     animation:float 3.4s ease-in-out infinite}
   @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
-  .phone .screen{background:#fff;border-radius:24px;overflow:hidden}
+  .phone .screen{background:#fff;border-radius:22px;overflow:hidden}
   .app-top{background:var(--payco);color:#fff;padding:13px 16px;font-weight:800;font-size:16px}
   .app-body{padding:16px 16px 18px}
   .acct{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px}
@@ -208,6 +213,18 @@
   .deposit-btn:hover{transform:translateY(-2px)}
   .deposit-btn:active{transform:scale(.97)}
   .hint{margin-top:10px;text-align:center;font-size:12px;color:var(--sub);line-height:1.45}
+  #scene-start .visual{align-items:flex-start;padding-top:8px}
+  .start-wallet-button{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;width:min(390px,100%);margin:0 auto;background:none;border:none;padding:0;cursor:pointer;text-align:center}
+  .start-wallet-button .phone{width:390px;max-width:100%;padding:8px;transition:transform .18s ease,box-shadow .18s ease}
+  .start-wallet-button:hover .phone{transform:translateY(-4px);box-shadow:0 28px 60px rgba(15,23,42,.34)}
+  .start-wallet-button:active .phone{transform:scale(.98)}
+  .start-wallet-shot{height:min(58vh,680px);background:#fff;border-radius:24px;overflow:hidden;border:1px solid rgba(15,23,42,.06)}
+  .start-wallet-shot img{width:100%;height:100%;display:block;object-fit:contain;object-position:center top;background:#fff}
+  .start-wallet-copy{margin-top:12px;text-align:center;max-width:300px}
+  .start-wallet-copy strong{display:block;font-size:15px;font-weight:900;color:var(--ink)}
+  .start-wallet-copy span{display:block;margin-top:4px;font-size:12px;color:var(--sub);font-weight:700;line-height:1.45}
+  .start-wallet-crop{height:100%;overflow:hidden;background:#fff}
+  .start-wallet-crop img{transform:translateY(-18px)}
 
   /* ── KRWPS 실물 코인 이미지 ── */
   .coin-real{position:relative;display:flex;align-items:center;justify-content:center}
@@ -487,17 +504,19 @@
       <div class="scene-head"><h2>💳 PAYCO 해외송금 시작하기</h2></div>
       <p class="scene-desc">한국 시중 은행 계좌에서 <b>1,000원</b>을 입금하는 시나리오를 기준으로 해외송금 플로우를 확인합니다.</p>
       <div class="visual">
-        <div class="phone"><div class="screen">
-          <div class="app-top">PAYCO</div>
-          <div class="app-body">
-            <div class="acct">
-              <div class="bank"><span class="bk">₩</span> 한국 시중 은행 302-****-5678</div>
-              <div class="amt">₩ 1,000 <small>입금 예정</small></div>
+        <button class="start-wallet-button" onclick="start()" aria-label="디지털월렛 입금 화면 열기">
+          <div class="phone"><div class="screen">
+            <div class="start-wallet-shot">
+              <div class="start-wallet-crop">
+                <img src="../이미지 보관폴더/디지털월렛 메인.png" alt="NHN KCP 디지털월렛 입금 시작 화면" onerror="this.style.display='none'">
+              </div>
             </div>
-            <button class="deposit-btn" onclick="start()">₩1,000 입금하기</button>
-            <div class="hint">버튼을 누르면 단계별 플로우가 시작됩니다</div>
+          </div></div>
+          <div class="start-wallet-copy">
+            <strong>NHN KCP 디지털월렛 입금 화면</strong>
+            <span>첫 화면을 누르면 원화 입금 단계로 이동합니다</span>
           </div>
-        </div></div>
+        </button>
       </div>
     </div>
 
@@ -521,16 +540,13 @@
           <div class="embedded-app">
             <div class="app-shell">
               <div class="app-shell-screen">
-                <div class="app-shell-top"><span>PAYCO</span><span>월렛 WebView</span></div>
+                <div class="webview-frame-top">PAYCO WebView</div>
                 <div class="app-shell-body">
                   <div class="webview-card">
-                    <div class="webview-head">
-                      <span class="webview-badge">NHN KCP WALLET</span>
-                    </div>
-                    <div class="webview-body">
-                      <div class="webview-logo"><img src="../이미지 보관폴더/디지털월렛 메인.jpg" alt="NHN KCP 디지털월렛 로고" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="fallback">👛</span></div>
-                      <div class="webview-title">NHN KCP 디지털월렛</div>
-                      <div class="webview-meta">PAYCO 앱 내 실행</div>
+                    <div class="webview-body clean">
+                      <div class="webview-shot crop-top">
+                        <img src="../이미지 보관폴더/디지털월렛 메인.png" alt="NHN KCP 디지털월렛 입금 화면" onerror="this.style.display='none'">
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -557,7 +573,7 @@
         <div class="story-panel">
           <p class="panel-desc">NHN KCP가 입금된 원화를 <b>블록체인 네트워크(KCP Mainnet)</b>에 연결하는 온램프 적용 예정 흐름을 표현했습니다.</p>
           <div class="flow-row">
-          <div class="node"><div class="icon wallet-logo"><img src="../이미지 보관폴더/디지털월렛 메인.jpg" alt="NHN KCP 디지털월렛 로고" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="fallback">👛</span></div><div class="cap">디지털월렛</div><div class="sub">₩1,000</div></div>
+          <div class="node"><div class="icon wallet-logo"><img src="../이미지 보관폴더/디지털월렛 메인.png" alt="NHN KCP 디지털월렛 로고" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="fallback">👛</span></div><div class="cap">디지털월렛</div><div class="sub">₩1,000</div></div>
           <div class="arrow">➜</div>
           <div class="node"><div class="icon" style="background:#fff;border:2.5px solid var(--kr)">🛡️</div><div class="cap">NHN KCP 게이트웨이</div><div class="sub">On-Ramp 처리</div></div>
           <div class="arrow">➜</div>
@@ -608,10 +624,7 @@
         <div class="wallet-shot-panel">
           <div class="wallet-shot-title">NHN KCP 디지털월렛 실제 화면</div>
           <div class="wallet-shot-grid swap-grid">
-            <div class="wallet-shot small">
-              <img src="../이미지 보관폴더/swap1" data-base="../이미지 보관폴더/swap1" data-i="0" alt="NHN KCP 디지털월렛 swap1 화면" onerror="tryShot(this)">
-              <div class="shot-fallback">swap1<br>이미지 필요</div>
-            </div>
+         
             <div class="wallet-shot small">
               <img src="../이미지 보관폴더/swap2" data-base="../이미지 보관폴더/swap2" data-i="0" alt="NHN KCP 디지털월렛 swap2 화면" onerror="tryShot(this)">
               <div class="shot-fallback">swap2<br>이미지 필요</div>

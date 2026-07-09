@@ -320,7 +320,7 @@
   /* 로고 이미지 표시 확대 */
   .wallet-logo-tile{padding:0;overflow:hidden}
   .wallet-logo-tile img{width:100%;height:100%;object-fit:cover;object-position:center top;transform:none;transform-origin:center}
-  img[src*="디지털월렛 메인.jpg"]{object-fit:cover;object-position:center top;transform:none;transform-origin:center}
+  img[src*="디지털월렛 메인.png"]{object-fit:cover;object-position:center top;transform:none;transform-origin:center}
   /* 상단바 슬림 모드 */
   .stepper-card{padding:5px 14px 6px;margin-bottom:8px;border-radius:12px}
   .regions{display:flex;gap:6px;margin-bottom:3px}
@@ -332,6 +332,24 @@
   .step .lbl br{display:none}
   .step::before{top:11.5px;left:calc(-50% + 11.5px);width:calc(100% - 23px);height:2px}
   .step.active::after{display:none}
+
+  .b2b-home{width:100%;max-width:1180px;display:grid;grid-template-columns:minmax(470px,1.08fr) 64px minmax(390px,.92fr);gap:14px;align-items:stretch}
+  .b2b-poc-card,.b2b-target-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 14px 32px rgba(15,23,42,.08);min-width:0}
+  .b2b-poc-card h3,.b2b-target-card h3{font-size:18px;font-weight:950;letter-spacing:-.02em;margin-bottom:16px;color:#0f172a;text-align:center}
+  .b2b-output-items{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:0}
+  .b2b-output-item{border:1px solid #e8eef7;background:#f8fafc;border-radius:16px;min-height:230px;padding:14px 12px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;text-align:center;overflow:hidden}
+  .b2b-output-item img{width:96px;height:96px;object-fit:cover;object-position:center top;border-radius:16px;background:#fff;border:1px solid #edf2f7;margin-bottom:10px}
+  .b2b-output-item .ico{width:88px;height:88px;border-radius:20px;background:#fff;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;font-size:40px;margin-bottom:12px}
+  .b2b-output-item b{font-size:13px;font-weight:950;line-height:1.2;color:#0f172a;word-break:keep-all}
+  .b2b-home-connector{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;min-width:0}
+  .b2b-home-connector .arrow{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--s1),var(--s2));color:#fff;font-size:30px;font-weight:950;box-shadow:0 14px 30px rgba(37,99,235,.24)}
+  .b2b-home-connector .label{display:none}
+  .b2b-target-card{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;background:linear-gradient(180deg,#fff,#f8fafc)}
+  .b2b-target-card .merchant-hub{width:116px;height:116px;font-size:50px}
+  .b2b-target-card .sector-list{width:100%;max-width:310px;grid-template-columns:1fr 1fr;gap:8px;margin-top:0}
+  .b2b-target-card .sector{font-size:12px;padding:8px 7px;background:#fff}
+  .b2b-target-note{border-radius:999px;background:linear-gradient(135deg,var(--s1-bg),var(--s2-bg));border:1px solid rgba(37,99,235,.14);padding:9px 14px;color:#1d4ed8;font-size:12.5px;font-weight:950}
+  .b2b-output-desc{margin-top:9px;font-size:11.5px;line-height:1.42;color:#475569;font-weight:850;word-break:keep-all}
 </style>
 </head>
 <body>
@@ -347,15 +365,13 @@
   <!-- 상단 스테퍼 -->
   <div class="stepper-card">
     <div class="regions">
-      <div class="region poc">✅ PoC 완료</div>
-      <div class="region exp">🚀 대형가맹점 B2B 인프라 구축</div>
+      <div class="region exp" style="flex:1">🚀 WEB3 인프라 제공</div>
     </div>
     <div class="stepper" id="stepper">
-      <div class="step" data-c="0" data-i="0"><div class="dot"><span class="num">P</span><span class="chk">✓</span></div><div class="lbl">PoC<br>E2E 검증</div></div>
-      <div class="step" data-c="1" data-i="1"><div class="dot"><span class="num">1</span><span class="chk">✓</span></div><div class="lbl">기업 앱 내<br>월렛 임베딩</div></div>
-      <div class="step" data-c="2" data-i="2"><div class="dot"><span class="num">2</span><span class="chk">✓</span></div><div class="lbl">기업 주체<br>월렛 운영</div></div>
-      <div class="step" data-c="3" data-i="3"><div class="dot"><span class="num">3</span><span class="chk">✓</span></div><div class="lbl">3대 관리자<br>페이지 제공</div></div>
-      <div class="step" data-c="4" data-i="4"><div class="dot"><span class="num">4</span><span class="chk">✓</span></div><div class="lbl">맞춤형<br>결제인프라 제공</div></div>
+      <div class="step" data-c="1" data-i="0"><div class="dot"><span class="num">1</span><span class="chk">✓</span></div><div class="lbl">대형가맹점 B2B<br>인프라 구축</div></div>
+      <div class="step" data-c="2" data-i="1"><div class="dot"><span class="num">2</span><span class="chk">✓</span></div><div class="lbl">기업 주체<br>월렛운영</div></div>
+      <div class="step" data-c="3" data-i="2"><div class="dot"><span class="num">3</span><span class="chk">✓</span></div><div class="lbl">3대 관리자<br>페이지 제공</div></div>
+      <div class="step" data-c="4" data-i="3"><div class="dot"><span class="num">4</span><span class="chk">✓</span></div><div class="lbl">맞춤형 결제인프라<br>제공</div></div>
     </div>
   </div>
 
@@ -365,49 +381,40 @@
 
     <!-- 시작 화면 -->
     <div class="scene show" id="scene-start">
-      <div class="scene-head"><h2>🧭 대형가맹점 B2B 인프라 구축 로드맵</h2></div>
-      <p class="scene-desc">PAYCO 단일 서비스로 검증을 마친 스테이블코인 결제,<br>이제 <b>모든 기업의 앱</b>에 담습니다.</p>
-      <div class="visual" style="flex-direction:column;gap:26px">
-        <div style="display:flex;align-items:center;gap:22px;font-size:15px;font-weight:800">
-          <span style="background:var(--poc-bg);color:var(--poc);padding:10px 20px;border-radius:12px">PoC · 단일 서비스</span>
-          <span class="arrow">➜</span>
-          <span style="background:linear-gradient(135deg,var(--s1),var(--s2));color:#fff;padding:10px 20px;border-radius:12px;box-shadow:0 6px 18px rgba(124,58,237,.3)">대형가맹점 B2B 인프라 구축</span>
-        </div>
-        <button class="start-btn" onclick="show(0)">▶ 확장 로드맵 보기</button>
-      </div>
-    </div>
-
-    <!-- P. PoC 요약 -->
-    <div class="scene" id="scene-0">
-      <div class="scene-head"><div class="no" style="background:var(--poc)">PoC</div><h2>결제 특화 메인넷 구축 , 디지털월렛 E2E 검증</h2></div>
-      <p class="scene-desc">NHN KCP는 아발란체 기반 결제 특화 메인넷과 디지털월렛을 구축하여, <b>스테이블코인 결제·실시간 정산·글로벌 결제 인프라</b>의 PoC 검증을 완료</p>
-      <div class="visual"><div class="poc-grid">
-        <div class="phone"><div class="screen">
-          <div class="app-top" style="background:var(--payco)">PAYCO</div>
-          <div class="app-body">
-            <div class="wallet-chip"><div class="t">DIGITAL WALLET</div><div class="v">5,000 KRWPS</div></div>
-            <div class="app-menu"><i>💳</i><i>📤</i><i>📥</i><i>🧾</i></div>
+      <div class="scene-head"><h2>B2B대상 Web3 결제 플랫폼 제공</h2></div>
+      <p class="scene-desc">NHN KCP 스테이블코인 결제 PoC 산출물을 기반으로, 대형가맹점이 자사 서비스 안에서 활용할 수 있는 B2B 인프라로 확장합니다.</p>
+      <div class="visual" style="flex-direction:column;gap:16px">
+        <div class="b2b-home">
+          <div class="b2b-poc-card">
+            <h3>NHN KCP 스테이블코인 결제 PoC 개발 산출물</h3>
+            <div class="b2b-output-items">
+              <div class="b2b-output-item"><img src="../이미지 보관폴더/디지털월렛 메인.png" alt="디지털월렛"><b>디지털월렛</b><p class="b2b-output-desc">SDK, API 제공하여 가맹점 앱 내 임베딩</p></div>
+              <div class="b2b-output-item"><div class="ico">🌐</div><b>결제 특화<br>메인넷</b><p class="b2b-output-desc">규제친화적인 L1 결제 특화 메인넷 간편 구축</p></div>
+              <div class="b2b-output-item"><div class="ico">🖥</div><b>NHN KCP<br>시스템</b><p class="b2b-output-desc">블록체인 지식없이도 운영가능한 3대 관리자페이지 및 시스템 제공</p></div>
+            </div>
           </div>
-        </div></div>
-        <div class="brace">＋</div>
-        <div class="poc-pages">
-          <div class="poc-page"><div class="ic" style="background:var(--s2-bg)">🗂️</div><div><div class="nm">월렛 관리자</div><div class="ds">회원 · 월렛 관리</div></div></div>
-          <div class="poc-page"><div class="ic" style="background:var(--s1-bg)">🏪</div><div><div class="nm">가맹점 관리자</div><div class="ds">결제 · 정산 관리</div></div></div>
-          <div class="poc-page"><div class="ic" style="background:var(--s3-bg)">📡</div><div><div class="nm">메인넷 관리자</div><div class="ds">체인 현황 모니터링</div></div></div>
+          <div class="b2b-home-connector" aria-hidden="true">
+            <div class="arrow">→</div>
+          </div>
+          <div class="b2b-target-card">
+            <h3>대형가맹점 B2B 인프라 구축</h3>
+            <div class="merchant-hub">🏢</div>
+            <div class="sector-list">
+              <div class="sector">뷰티·헬스</div>
+              <div class="sector">이커머스</div>
+              <div class="sector">F&amp;B·프랜차이즈</div>
+              <div class="sector">유통·멤버십</div>
+              <div class="sector wide">그 외</div>
+            </div>
+            <div class="b2b-target-note">기업 앱 안에 결제·월렛·관리자 인프라 제공</div>
+          </div>
         </div>
-      </div></div>
-      <div class="metrics">
-        <div class="metric"><div class="v">결제 2,392건</div><div class="k">100% 성공률</div></div>
-        <div class="metric"><div class="v">정산 418건</div><div class="k">100% 성공률</div></div>
-        <div class="metric"><div class="v">1.77초</div><div class="k">오프라인 결제</div></div>
-        <div class="metric"><div class="v">1.87초</div><div class="k">온라인 결제</div></div>
-        <div class="metric"><div class="v">암호화</div><div class="k">보안 처리</div></div>
-        <div class="metric"><div class="v">1시간</div><div class="k">자동 정산</div></div>
+        <button class="start-btn" onclick="show(0)">▶ WEB3 인프라 보기</button>
       </div>
     </div>
 
     <!-- 1. SDK/API 임베딩 -->
-    <div class="scene" id="scene-1">
+    <div class="scene" id="scene-0">
       <div class="scene-head"><div class="no" style="background:var(--s1)">1</div><h2>대형가맹점 B2B 인프라 구축</h2></div>
       <p class="scene-desc">가맹점은 신청페이지에서 원클릭 결제 인프라 신청을 통해, <b>NHN KCP의 글로벌 결제인프라, 결제 특화 메인넷·디지털월렛·관리자 페이지</b>를 제공 받을 수 있습니다.</p>
       <div class="visual"><div class="provision-flow">
@@ -442,7 +449,7 @@
         <div class="flow-arrow"><span>➜</span></div>
         <div class="flow-card">
           <div class="flow-step">STEP 03</div>
-          <div class="wallet-logo-tile"><img src="../이미지 보관폴더/디지털월렛 메인.jpg" alt="NHN KCP 디지털월렛 로고"></div>
+          <div class="wallet-logo-tile"><img src="../이미지 보관폴더/디지털월렛 메인.png" alt="NHN KCP 디지털월렛 로고"></div>
           <div class="label">디지털월렛 생성</div>
           <div class="sub">기업 앱 내 임베딩</div>
         </div>
@@ -467,7 +474,7 @@
     </div>
 
     <!-- 2. 기업 주체 운영 -->
-    <div class="scene" id="scene-2">
+    <div class="scene" id="scene-1">
       <div class="scene-head"><div class="no" style="background:var(--s2)">2</div><h2>기업이 주체가 되는 월렛 운영</h2></div>
       <p class="scene-desc">인프라는 <b>NHN KCP</b>가, 운영의 주도권은 <b>B2B 기업</b>이 직접 자사 브랜드로 관리 가능한 서비스를 제공합니다.</p>
       <div class="visual"><div class="ops-wrap">
@@ -486,7 +493,7 @@
     </div>
 
     <!-- 3. 3대 관리자 페이지 -->
-    <div class="scene" id="scene-3">
+    <div class="scene" id="scene-2">
       <div class="scene-head"><div class="no" style="background:var(--s3)">3</div><h2>디지털월렛 + 3대 관리자 페이지</h2></div>
       <p class="scene-desc">제공된 결제 인프라에 대한 <b>E2E 실시간 현황 관리</b>가 가능한 관제시스템을 제공합니다.<br>블록체인 전문 지식 없이도 <b>결제·정산·회원관리</b>를 손쉽게 운영할 수 있습니다.</p>
       <div class="visual"><div class="admin-grid">
@@ -530,7 +537,7 @@
     </div>
 
     <!-- 4. 커스터마이징 -->
-    <div class="scene" id="scene-4">
+    <div class="scene" id="scene-3">
       <div class="scene-head"><div class="no" style="background:var(--s4)">4</div><h2>맞춤형 결제인프라 제공</h2></div>
       <p class="scene-desc">NHN KCP 디지털월렛은 각 가맹점의 니즈에 맞는 <b>맞춤형 디지털 월렛</b>이 제공가능한 모델로 설계되었습니다.</p>
       <div class="visual"><div class="custom-wrap">
@@ -538,7 +545,7 @@
           <div class="app-top" style="background:linear-gradient(135deg,#1d4ed8,#7c3aed)">NHN KCP Wallet <span style="font-size:9px;background:#fff;color:#2563eb;padding:2px 6px;border-radius:99px;margin-left:auto">Custom</span></div>
           <div class="app-body">
             <div class="wallet-chip" style="background:#fff;color:#0f172a;border:1px solid var(--line);box-shadow:0 5px 14px rgba(37,99,235,.16)">
-              <img src="../이미지 보관폴더/디지털월렛 메인.jpg" alt="NHN KCP Wallet" style="width:100%;height:68px;object-fit:cover;object-position:center top;display:block;margin-bottom:6px;border-radius:12px">
+              <img src="../이미지 보관폴더/디지털월렛 메인.png" alt="NHN KCP Wallet" style="width:100%;height:68px;object-fit:cover;object-position:center top;display:block;margin-bottom:6px;border-radius:12px">
               <div class="v" style="color:#1d4ed8">12,400 KRWPS</div>
               <div class="v" style="color:#7c3aed;margin-top:5px">10 AVAX</div>
               <div class="v" style="color:#059669;margin-top:5px">6.09 USDT</div>
@@ -584,11 +591,10 @@
 </div>
 
 <script>
-const TOTAL = 5, FIRST_DELAY = 10000, STEP_DELAY = 22000;
+const TOTAL = 4, FIRST_DELAY = 10000, STEP_DELAY = 22000;
 const stepMeta = [
-  {c:'--poc', bg:'--poc-bg', name:'PoC · 결제 특화 메인넷 및 디지털월렛 E2E 검증'},
-  {c:'--s1',  bg:'--s1-bg',  name:'1/4 · 대형가맹점 인프라 프로비저닝'},
-  {c:'--s2',  bg:'--s2-bg',  name:'2/4 · 기업 주체 월렛 운영'},
+  {c:'--s1',  bg:'--s1-bg',  name:'1/4 · 대형가맹점 B2B 인프라 구축'},
+  {c:'--s2',  bg:'--s2-bg',  name:'2/4 · 기업 주체 월렛운영'},
   {c:'--s3',  bg:'--s3-bg',  name:'3/4 · 3대 관리자 페이지 제공'},
   {c:'--s4',  bg:'--s4-bg',  name:'4/4 · 맞춤형 결제인프라 제공'}
 ];
