@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NHN KCP 스테이블코인 콘텐츠 통합 뷰어</title>
+<style>
+  :root{
+    --ink:#0f172a;
+    --sub:#64748b;
+    --line:#e2e8f0;
+    --blue:#2563eb;
+    --purple:#7c3aed;
+    --cyan:#0891b2;
+    --bg:#f6f8fc;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif}
+  html,body{height:100%}
+  body{height:100vh;overflow:hidden;background:var(--bg);color:var(--ink)}
+  .shell{height:100vh;display:grid;grid-template-columns:290px minmax(0,1fr);gap:0}
+  aside{position:relative;z-index:2;background:rgba(255,255,255,.94);border-right:1px solid var(--line);
+    box-shadow:8px 0 32px rgba(15,23,42,.06);padding:22px 18px;display:flex;flex-direction:column;min-height:0}
+  .brand{padding:4px 4px 18px;border-bottom:1px solid var(--line);margin-bottom:16px}
+  .eyebrow{display:inline-flex;background:var(--ink);color:#fff;border-radius:999px;padding:5px 11px;
+    font-size:10px;font-weight:900;letter-spacing:.08em;margin-bottom:12px}
+  h1{font-size:21px;line-height:1.18;font-weight:950;letter-spacing:-.02em}
+  h1 span{background:linear-gradient(90deg,var(--blue),var(--purple),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .brand p{margin-top:9px;color:var(--sub);font-size:12px;line-height:1.5;font-weight:700}
+  .nav{display:flex;flex-direction:column;gap:10px}
+  .nav button{width:100%;border:1px solid var(--line);background:#fff;border-radius:14px;padding:14px 13px;text-align:left;
+    cursor:pointer;transition:transform .18s,box-shadow .18s,border-color .18s,background .18s;position:relative;overflow:hidden}
+  .nav button:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(15,23,42,.08)}
+  .nav button.active{border-color:rgba(37,99,235,.35);background:linear-gradient(180deg,#fff,#eff6ff);
+    box-shadow:0 12px 28px rgba(37,99,235,.12)}
+  .nav button.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(var(--blue),var(--purple))}
+  .topline{display:flex;align-items:center;gap:10px}
+  .num{width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:950;
+    background:linear-gradient(135deg,var(--blue),var(--purple));flex-shrink:0}
+  .title{font-size:14px;font-weight:950;color:var(--ink)}
+  .desc{margin:8px 0 0 40px;color:var(--sub);font-size:11.5px;line-height:1.45;font-weight:700}
+  .meta{margin-top:12px;border-top:1px solid var(--line);padding-top:14px;color:var(--sub);font-size:11px;line-height:1.5;font-weight:700}
+  .team-sign{color:var(--ink);font-size:13px;font-weight:950;letter-spacing:-.01em}
+  main{min-width:0;display:flex;flex-direction:column;height:100vh}
+  .viewer-head{height:52px;flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
+    padding:0 18px;background:rgba(255,255,255,.86);border-bottom:1px solid var(--line);backdrop-filter:blur(10px)}
+  .current{display:flex;align-items:center;gap:10px;min-width:0}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--blue);box-shadow:0 0 0 5px rgba(37,99,235,.12)}
+  .current strong{font-size:14px;font-weight:950;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .current span{font-size:11.5px;color:var(--sub);font-weight:800}
+  .actions{display:flex;gap:8px}
+  .actions button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:900;
+    color:var(--ink);cursor:pointer}
+  .actions button:hover{background:#f8fafc}
+  .frame-wrap{position:relative;flex:1 1 auto;min-height:0;background:#eaf0f8}
+  iframe{display:block;width:100%;height:100%;border:0;background:#fff}
+  .loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#f8fafc;color:var(--sub);
+    font-size:13px;font-weight:900;opacity:0;pointer-events:none;transition:opacity .2s}
+  .loading.show{opacity:1}
+  @media(max-width:900px){
+    .shell{grid-template-columns:1fr}
+    aside{height:auto;max-height:230px;border-right:0;border-bottom:1px solid var(--line);padding:14px}
+    .brand{padding-bottom:10px;margin-bottom:10px}
+    h1{font-size:18px}
+    .nav{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .desc{display:none}
+    main{height:calc(100vh - 230px)}
+  }
+  /* 통합 보고서 테마 */
+  :root{--ink:#111827;--sub:#526071;--line:#dbe3ef;--blue:#1d4ed8;--purple:#6d28d9;--cyan:#0891b2;--bg:#eef4fb}
+  body{background:linear-gradient(180deg,#f8fafc 0%,#eef4fb 100%);color:var(--ink)}
+  aside,.viewer-head{background:rgba(255,255,255,.96);border-color:var(--line);box-shadow:0 16px 42px rgba(15,23,42,.08);backdrop-filter:blur(8px)}
+  .eyebrow{background:#111827;border:1px solid rgba(255,255,255,.12);box-shadow:0 8px 20px rgba(15,23,42,.14)}
+  h1 span{background:linear-gradient(90deg,var(--blue),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .nav button{border-color:var(--line);border-radius:12px;box-shadow:0 8px 18px rgba(15,23,42,.04)}
+  .nav button.active{border-color:rgba(29,78,216,.28);background:linear-gradient(180deg,#fff,#eff6ff);box-shadow:0 12px 28px rgba(29,78,216,.12)}
+  .nav button.active::before{background:linear-gradient(var(--blue),var(--cyan))}
+  .num{background:linear-gradient(135deg,var(--blue),var(--cyan));border-radius:9px}
+  .frame-wrap{background:#e5edf6}
+  .actions button{border-color:var(--line);border-radius:10px;font-weight:850}
+  .actions button:hover{background:#f1f5f9}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside>
+    <div class="brand">
+      <div class="eyebrow">STABLECOIN CONTENTS</div>
+      <h1>NHN KCP <span>StableCoin 인프라 확장 모델</span></h1>
+      <p>결제, 글로벌 송금·정산, 대형가맹점 B2B 인프라 구축 자료를 한 화면에서 전환해 확인합니다.</p>
+    </div>
+
+    <nav class="nav" id="nav"></nav>
+
+    <div class="meta team-sign">NHN KCP Web3 팀</div>
+  </aside>
+
+  <main>
+    <div class="viewer-head">
+      <div class="current">
+        <i class="dot" id="dot"></i>
+        <div>
+          <strong id="currentTitle">PoC 리포트</strong>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="button" onclick="reloadFrame()">새로고침</button>
+        <button type="button" onclick="openOriginal()">새 창으로 열기</button>
+      </div>
+    </div>
+    <div class="frame-wrap">
+      <iframe id="viewer" src="항목별 html/PoC Report_v1.0.html" title="콘텐츠 뷰어"></iframe>
+      <div class="loading" id="loading">콘텐츠를 불러오는 중...</div>
+    </div>
+  </main>
+</div>
+
+<script>
+const docs = [
+  {
+    title: 'PoC 리포트',
+    desc: 'PoC 검증 결과와 인프라 확장 방향 요약',
+    file: '항목별 html/PoC Report_v1.0.html',
+    color: '#64748b',
+    duration: 76000
+  },
+  {
+    title: '온.오프라인 결제 모델',
+    desc: '온라인 PG 연동, 오프라인 QR/바코드 결제 흐름',
+    file: '항목별 html/Payment After PoC_v1.0.html',
+    color: '#2563eb',
+    duration: 76000
+  },
+  {
+    title: '글로벌 송금 ,정산 모델',
+    desc: 'KRWPS, USDT, 글로벌 송금과 온체인 정산 흐름',
+    file: '항목별 html/Global_exchange_sample_v1.1.html',
+    color: '#7c3aed',
+    duration: 164000
+  },
+  {
+    title: '대형가맹점 B2B 인프라 구축',
+    desc: 'PoC 이후 대형가맹점 결제 인프라 구축 모델',
+    file: '항목별 html/BaaS PoC After_v0.2.html',
+    color: '#0891b2',
+    duration: 98000
+  }
+];
+
+let active = 0;
+const nav = document.getElementById('nav');
+const frame = document.getElementById('viewer');
+const loading = document.getElementById('loading');
+
+docs.forEach((doc, index) => {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.innerHTML = `
+    <div class="topline">
+      <span class="num">${String(index + 1).padStart(2, '0')}</span>
+      <span class="title">${doc.title}</span>
+    </div>
+    <p class="desc">${doc.desc}</p>
+  `;
+  btn.addEventListener('click', () => selectDoc(index));
+  nav.appendChild(btn);
+});
+
+function selectDoc(index){
+  active = index;
+  const doc = docs[index];
+  [...nav.children].forEach((btn, i) => btn.classList.toggle('active', i === index));
+  document.getElementById('currentTitle').textContent = doc.title;
+  document.getElementById('dot').style.background = doc.color;
+  loading.classList.add('show');
+  frame.src = doc.file;
+}
+
+frame.addEventListener('load', () => loading.classList.remove('show'));
+
+function reloadFrame(){
+  loading.classList.add('show');
+  frame.contentWindow.location.reload();
+}
+
+function openOriginal(){
+  window.open(docs[active].file, '_blank');
+}
+
+
+selectDoc(0);
+</script>
+</body>
+</html>

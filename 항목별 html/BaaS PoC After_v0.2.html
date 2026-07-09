@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NHN KCP 대형가맹점 B2B 인프라 구축</title>
+<style>
+  :root{
+    --poc:#64748b; --poc-bg:#f1f5f9;
+    --s1:#2563eb; --s1-bg:#eff6ff;
+    --s2:#7c3aed; --s2-bg:#f5f3ff;
+    --s3:#0891b2; --s3-bg:#ecfeff;
+    --s4:#d97706; --s4-bg:#fffbeb;
+    --ink:#0f172a; --sub:#64748b; --line:#e2e8f0;
+    --payco:#e4002b;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif}
+  body{background:#f6f8fc;min-height:100vh;color:var(--ink);overflow-x:hidden}
+
+  .bg-blob{position:fixed;border-radius:50%;filter:blur(90px);opacity:.32;z-index:0;animation:drift 16s ease-in-out infinite alternate}
+  .bg-blob.b1{width:520px;height:520px;background:#93c5fd;top:-160px;left:-140px}
+  .bg-blob.b2{width:460px;height:460px;background:#c4b5fd;top:32%;right:-160px;animation-delay:-5s}
+  .bg-blob.b3{width:420px;height:420px;background:#fcd34d;bottom:-160px;left:32%;animation-delay:-10s}
+  @keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(50px,40px) scale(1.12)}}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 24px 60px;position:relative;z-index:1}
+
+  /* ── Header ── */
+  header{text-align:center;margin-bottom:26px}
+  header .badge{display:inline-block;background:var(--ink);color:#fff;font-size:12px;font-weight:700;
+    letter-spacing:.12em;padding:6px 16px;border-radius:999px;margin-bottom:12px;position:relative;overflow:hidden}
+  header .badge::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;
+    background:linear-gradient(105deg,transparent,rgba(255,255,255,.55),transparent);animation:sheen 3s infinite}
+  @keyframes sheen{0%{left:-60%}60%,100%{left:130%}}
+  header h1{font-size:28px;font-weight:800;letter-spacing:-.02em}
+  header h1 span{background:linear-gradient(90deg,var(--s1),var(--s2),var(--s4),var(--s1));background-size:300% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;animation:hue 6s linear infinite}
+  @keyframes hue{to{background-position:300% 0}}
+  header p{margin-top:8px;color:var(--sub);font-size:14px}
+
+  /* ── Stepper ── */
+  .stepper-card{background:rgba(255,255,255,.85);backdrop-filter:blur(10px);border:1px solid var(--line);
+    border-radius:20px;padding:18px 22px 20px;box-shadow:0 4px 24px rgba(15,23,42,.06);margin-bottom:22px}
+  .regions{display:flex;gap:8px;margin-bottom:14px}
+  .region{text-align:center;font-size:11.5px;font-weight:800;padding:5px 0;border-radius:8px}
+  .region.poc{flex:1;background:var(--poc-bg);color:var(--poc)}
+  .region.exp{flex:4;background:linear-gradient(90deg,var(--s1-bg),var(--s2-bg),var(--s4-bg));color:var(--s2)}
+  .stepper{display:flex;align-items:flex-start}
+  .step{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;cursor:pointer}
+  .step .dot{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:15px;background:#fff;border:2.5px solid var(--line);color:#94a3b8;
+    transition:all .35s;position:relative;z-index:2}
+  .step .lbl{margin-top:8px;font-size:11.5px;font-weight:700;color:#94a3b8;text-align:center;line-height:1.35;transition:color .3s}
+  .step::before{content:'';position:absolute;top:20px;left:calc(-50% + 20px);width:calc(100% - 40px);height:3px;
+    background:var(--line);z-index:1;transition:background .4s}
+  .step:first-child::before{display:none}
+  .step.done .dot{border-color:transparent;color:#fff}
+  .step.done .lbl{color:var(--ink)}
+  .step.active .dot{transform:scale(1.22);color:#fff;border-color:transparent}
+  .step.active .lbl{color:var(--ink)}
+  .step[data-c="0"].done .dot,.step[data-c="0"].active .dot{background:var(--poc)}
+  .step[data-c="1"].done .dot,.step[data-c="1"].active .dot{background:var(--s1)}
+  .step[data-c="2"].done .dot,.step[data-c="2"].active .dot{background:var(--s2)}
+  .step[data-c="3"].done .dot,.step[data-c="3"].active .dot{background:var(--s3)}
+  .step[data-c="4"].done .dot,.step[data-c="4"].active .dot{background:var(--s4)}
+  .step.done::before,.step.active::before{background:linear-gradient(90deg,var(--s1),var(--s2),var(--s4))}
+  .step .dot .chk{display:none}
+  .step.done:not(.active) .dot .num{display:none}
+  .step.done:not(.active) .dot .chk{display:block;animation:pop .35s ease}
+  .step.active .dot{animation:pulse 1.5s infinite}
+  .step.active::after{content:'';position:absolute;top:20px;left:50%;width:64px;height:64px;margin:-32px;
+    border-radius:50%;border:2px solid rgba(124,58,237,.35);animation:ripple 1.5s ease-out infinite;z-index:0}
+  @keyframes ripple{from{transform:scale(.5);opacity:1}to{transform:scale(1.25);opacity:0}}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 5px rgba(124,58,237,.16)}50%{box-shadow:0 0 0 11px rgba(124,58,237,.03)}}
+  @keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+
+  /* ── Stage ── */
+  .stage{background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border:1px solid var(--line);
+    border-radius:24px;min-height:500px;box-shadow:0 12px 40px rgba(15,23,42,.08);overflow:hidden;position:relative}
+  .zone-strip{height:6px;background:var(--line);transition:background .5s;position:relative;overflow:hidden}
+  .zone-strip::after{content:'';position:absolute;inset:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);
+    transform:translateX(-100%);animation:stripflow 2.4s linear infinite}
+  @keyframes stripflow{to{transform:translateX(100%)}}
+  .scene{display:none;padding:32px 40px;animation:sceneIn .6s cubic-bezier(.22,1,.36,1)}
+  .scene.show{display:block}
+  @keyframes sceneIn{from{opacity:0;transform:translateY(22px) scale(.985)}to{opacity:1;transform:none}}
+  .scene-head{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:6px}
+  .scene-head .no{min-width:34px;height:34px;padding:0 12px;border-radius:999px;color:#fff;display:flex;align-items:center;
+    justify-content:center;font-weight:800;font-size:14px;box-shadow:0 4px 12px rgba(15,23,42,.2)}
+  .scene-head h2{font-size:23px;font-weight:800;letter-spacing:-.02em}
+  .scene-desc{text-align:center;color:var(--sub);font-size:14.5px;margin-bottom:24px;line-height:1.6}
+  .visual{display:flex;align-items:center;justify-content:center;min-height:280px;position:relative}
+
+  .arrow{font-size:30px;color:#a5b4fc;animation:slide 1.1s infinite;text-shadow:0 0 14px rgba(124,58,237,.35)}
+  @keyframes slide{0%,100%{transform:translateX(0);opacity:.45}50%{transform:translateX(9px);opacity:1}}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+
+  /* ── 폰 목업 (공용) ── */
+  .phone{width:200px;background:#0f172a;border-radius:28px;padding:9px;box-shadow:0 18px 44px rgba(15,23,42,.28);
+    animation:float 3.4s ease-in-out infinite}
+  .phone .screen{background:#fff;border-radius:20px;overflow:hidden}
+  .app-top{color:#fff;padding:11px 14px;font-weight:800;font-size:13px;display:flex;align-items:center;gap:6px}
+  .app-body{padding:12px}
+  .wallet-chip{border-radius:12px;padding:11px;color:#fff;position:relative;overflow:hidden;
+    background:linear-gradient(135deg,#1d4ed8,#7c3aed);box-shadow:0 5px 14px rgba(37,99,235,.35)}
+  .wallet-chip::after{content:'';position:absolute;top:0;left:-70%;width:45%;height:100%;transform:skewX(-20deg);
+    background:linear-gradient(105deg,transparent,rgba(255,255,255,.5),transparent);animation:sheen 2.6s infinite}
+  .wallet-chip .t{font-size:10px;font-weight:700;opacity:.85;letter-spacing:.06em}
+  .wallet-chip .v{font-size:15px;font-weight:800;margin-top:3px}
+  .app-menu{display:flex;gap:6px;margin-top:10px}
+  .app-menu i{flex:1;font-style:normal;background:#f8fafc;border:1px solid var(--line);border-radius:9px;
+    text-align:center;padding:8px 0;font-size:16px}
+
+  /* ── Scene PoC: 요약 ── */
+  .poc-grid{display:flex;align-items:center;gap:34px}
+  .poc-pages{display:flex;flex-direction:column;gap:10px}
+  .poc-page{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:13px;
+    padding:10px 16px;box-shadow:0 4px 12px rgba(15,23,42,.06);animation:cardIn .5s ease backwards}
+  .poc-page:nth-child(1){animation-delay:.15s}.poc-page:nth-child(2){animation-delay:.3s}.poc-page:nth-child(3){animation-delay:.45s}
+  @keyframes cardIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+  .poc-page .ic{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
+  .poc-page .nm{font-size:13px;font-weight:800}
+  .poc-page .ds{font-size:11px;color:var(--sub)}
+  .brace{font-size:56px;color:#cbd5e1;font-weight:200}
+
+  /* ── Scene 1: SDK 임베딩 ── */
+  .sdk-flow{display:flex;align-items:center;gap:26px}
+  .sdk-box{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .sdk-core{width:130px;height:130px;border-radius:30px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:linear-gradient(135deg,#1e3a8a,#7c3aed);color:#fff;box-shadow:0 12px 30px rgba(37,99,235,.35);
+    position:relative;overflow:hidden;animation:float 3.2s ease-in-out infinite}
+  .sdk-core::after{content:'';position:absolute;top:0;left:-70%;width:45%;height:100%;transform:skewX(-20deg);
+    background:linear-gradient(105deg,transparent,rgba(255,255,255,.45),transparent);animation:sheen 2.6s infinite}
+  .sdk-core .em{font-size:40px}
+  .sdk-core .tt{font-size:12px;font-weight:800;letter-spacing:.08em;margin-top:4px}
+  .sdk-core.logo-card{background:#fff;padding:14px;border:1px solid var(--line)}
+  .sdk-core.logo-card img{width:100%;height:100%;object-fit:contain;display:block;position:relative;z-index:1}
+  .sdk-tags{display:flex;gap:6px}
+  .sdk-tags b{font-size:10.5px;font-weight:800;padding:4px 10px;border-radius:999px;background:var(--s1-bg);color:var(--s1);
+    border:1px solid rgba(37,99,235,.2)}
+  .merchant-apps{display:flex;flex-direction:column;gap:10px}
+  .m-app{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:14px;
+    padding:9px 16px;box-shadow:0 5px 14px rgba(15,23,42,.07);animation:cardIn .5s ease backwards;transition:transform .25s}
+  .m-app:hover{transform:translateX(6px)}
+  .m-app:nth-child(1){animation-delay:.15s}.m-app:nth-child(2){animation-delay:.3s}
+  .m-app:nth-child(3){animation-delay:.45s}.m-app:nth-child(4){animation-delay:.6s}
+  .m-app .logo{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:900;font-size:13px}
+  .m-app .nm{font-size:13.5px;font-weight:800}
+  .m-app .ds{font-size:11px;color:var(--sub)}
+  .m-app .in{margin-left:8px;font-size:10.5px;font-weight:800;color:var(--s1);background:var(--s1-bg);
+    padding:3px 9px;border-radius:999px}
+
+  .provision-flow{width:100%;display:grid;grid-template-columns:1fr 34px 1.04fr 34px 1fr 34px 1fr 34px 1.04fr;
+    align-items:stretch;gap:8px}
+  .flow-card{min-height:206px;background:linear-gradient(180deg,#fff,#f8fafc);border:1px solid var(--line);border-radius:18px;
+    padding:14px 13px 15px;box-shadow:0 8px 22px rgba(15,23,42,.08);display:flex;flex-direction:column;
+    align-items:center;justify-content:space-between;text-align:center;position:relative;overflow:hidden;animation:cardUp .55s ease backwards}
+  .flow-card::before{content:'';position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,var(--s1),var(--s2));opacity:.9}
+  .flow-card:nth-child(1){animation-delay:.08s}.flow-card:nth-child(3){animation-delay:.18s}.flow-card:nth-child(5){animation-delay:.28s}
+  .flow-card:nth-child(7){animation-delay:.38s}.flow-card:nth-child(9){animation-delay:.48s}
+  .flow-step{font-size:10px;font-weight:900;color:var(--s1);background:var(--s1-bg);border:1px solid rgba(37,99,235,.18);
+    border-radius:999px;padding:4px 9px;letter-spacing:.04em}
+  .flow-card .label{font-size:14px;font-weight:900;line-height:1.35;letter-spacing:-.02em;margin-top:6px}
+  .flow-card .sub{font-size:11.2px;color:var(--sub);font-weight:750;line-height:1.45;margin-top:6px;min-height:32px}
+  .portal-ui{width:100%;max-width:150px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:9px;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.7)}
+  .portal-bar{height:8px;border-radius:99px;background:linear-gradient(90deg,var(--s1),var(--s2));margin-bottom:8px}
+  .portal-line{height:7px;border-radius:99px;background:#e2e8f0;margin:6px 0}
+  .portal-btn{margin-top:8px;background:var(--ink);color:#fff;border-radius:9px;padding:6px 9px;font-size:10.5px;font-weight:900}
+  .infra-checklist{width:100%;max-width:154px;background:#fff;border:1px solid var(--line);border-radius:15px;padding:9px 10px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.7);display:grid;gap:6px;text-align:left}
+  .check-row{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:900;color:#0f172a;line-height:1.1;white-space:nowrap}
+  .check-row .box{width:15px;height:15px;border-radius:4px;background:linear-gradient(135deg,var(--s1),var(--s2));color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:950;box-shadow:0 3px 8px rgba(37,99,235,.18);flex:0 0 auto}
+  .token-select{margin-left:21px;display:grid;grid-template-columns:1fr 1fr;gap:5px}
+  .token-pill{display:flex;align-items:center;gap:4px;border:1px solid #dbeafe;background:#eff6ff;border-radius:999px;padding:4px 6px;font-size:9.3px;font-weight:950;color:#1d4ed8;white-space:nowrap}
+  .token-pill .box{width:13px;height:13px;border-radius:4px;background:#2563eb;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:8px;flex:0 0 auto}
+  .merchant-hub{width:88px;height:88px;border-radius:24px;background:linear-gradient(135deg,#eff6ff,#f5f3ff);border:1px solid rgba(37,99,235,.18);
+    display:flex;align-items:center;justify-content:center;font-size:38px;box-shadow:0 10px 24px rgba(37,99,235,.12)}
+  .sector-list{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+  .sector{background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 5px;font-size:9.8px;
+    font-weight:850;text-align:center;white-space:normal;line-height:1.15;word-break:keep-all}
+  .sector.wide{grid-column:1 / -1;justify-self:center;min-width:72px}
+  .globe{width:96px;height:96px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 32% 28%,#dbeafe,#60a5fa 56%,#1d4ed8);box-shadow:0 12px 30px rgba(37,99,235,.26);
+    color:#fff;font-weight:900;position:relative;overflow:hidden}
+  .globe::before{content:'';position:absolute;inset:15%;border:2px solid rgba(255,255,255,.46);border-radius:50%;transform:scaleX(.55)}
+  .globe::after{content:'';position:absolute;left:8%;right:8%;top:50%;height:2px;background:rgba(255,255,255,.5)}
+  .globe span{position:relative;z-index:1;background:rgba(15,23,42,.72);padding:7px 10px;border-radius:999px;font-size:12px;line-height:1.1}
+  .wallet-logo-tile{width:126px;height:126px;border-radius:24px;background:#fff;border:1px solid var(--line);padding:7px;
+    box-shadow:0 12px 30px rgba(37,99,235,.15)}
+  .wallet-logo-tile img{width:100%;height:100%;object-fit:contain;display:block}
+  .admin-stack{display:grid;grid-template-columns:1fr;gap:7px;width:100%;max-width:150px}
+  .admin-pill{display:flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line);border-radius:11px;
+    padding:7px 8px;font-size:11px;font-weight:850;text-align:left;box-shadow:0 3px 8px rgba(15,23,42,.04)}
+  .flow-arrow{display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:22px;position:relative}
+  .flow-arrow::before{content:'';position:absolute;left:0;right:0;top:50%;height:2px;background:linear-gradient(90deg,#cbd5e1,#a5b4fc);
+    transform:translateY(-50%);z-index:0}
+  .flow-arrow span{position:relative;z-index:1;background:#fff;border:1px solid var(--line);width:28px;height:28px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(15,23,42,.06)}
+
+  /* ── Scene 2: 기업 주체 운영 ── */
+  .ops-wrap{display:flex;align-items:center;gap:40px}
+  .company-node{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .company-node .big{width:120px;height:120px;border-radius:28px;background:var(--s2-bg);display:flex;align-items:center;
+    justify-content:center;font-size:52px;box-shadow:0 10px 26px rgba(124,58,237,.18);animation:float 3.2s ease-in-out infinite}
+  .ops-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .ops-card{width:150px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 12px;text-align:center;
+    box-shadow:0 6px 18px rgba(15,23,42,.07);animation:cardUp .5s ease backwards;transition:transform .25s,box-shadow .25s}
+  .ops-card:hover{transform:translateY(-6px);box-shadow:0 14px 28px rgba(124,58,237,.15)}
+  .ops-card:nth-child(1){animation-delay:.15s}.ops-card:nth-child(2){animation-delay:.3s}.ops-card:nth-child(3){animation-delay:.45s}
+  @keyframes cardUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+  .ops-card .em{font-size:34px}
+  .ops-card .nm{font-size:14px;font-weight:800;margin-top:8px}
+  .ops-card .ds{font-size:11px;color:var(--sub);margin-top:3px}
+
+  /* ── Scene 3: 3대 관리자 페이지 ── */
+  .admin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;width:100%;max-width:860px}
+  .admin-card{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;
+    box-shadow:0 8px 22px rgba(15,23,42,.08);animation:cardUp .55s ease backwards;transition:transform .25s,box-shadow .25s}
+  .admin-card:hover{transform:translateY(-7px);box-shadow:0 18px 36px rgba(15,23,42,.14)}
+  .admin-card:nth-child(1){animation-delay:.1s}.admin-card:nth-child(2){animation-delay:.28s}.admin-card:nth-child(3){animation-delay:.46s}
+  .admin-card .bar{height:5px}
+  .admin-card .bd{padding:18px 16px 20px;text-align:center}
+  .admin-card .em{width:58px;height:58px;border-radius:16px;margin:0 auto;display:flex;align-items:center;
+    justify-content:center;font-size:28px}
+  .admin-card h3{font-size:15px;font-weight:800;margin-top:12px}
+  .admin-card .en{font-size:10.5px;font-weight:700;color:var(--sub);letter-spacing:.05em;margin-top:2px}
+  .admin-card ul{list-style:none;margin-top:12px;display:flex;flex-direction:column;gap:6px}
+  .admin-card li{font-size:12px;font-weight:600;color:#475569;background:#f8fafc;border-radius:8px;padding:6px 8px}
+  /* 미니 모니터 그래프 */
+  .mini-mon{margin-top:12px;background:#0f172a;border-radius:10px;padding:8px;position:relative;overflow:hidden}
+  .mini-mon svg{display:block;width:100%}
+  .mini-mon .live{position:absolute;top:7px;right:9px;font-size:9px;font-weight:800;color:#34d399;display:flex;align-items:center;gap:4px}
+  .mini-mon .live::before{content:'';width:6px;height:6px;border-radius:50%;background:#34d399;animation:blink 1s infinite}
+  @keyframes blink{50%{opacity:.2}}
+
+  /* ── Scene 4: 커스터마이징 ── */
+  .custom-wrap{display:flex;align-items:center;gap:44px}
+  .custom-cards{display:flex;flex-direction:column;gap:12px}
+  .c-card{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:15px;
+    padding:12px 18px;box-shadow:0 6px 16px rgba(15,23,42,.07);animation:cardIn .5s ease backwards;transition:transform .25s}
+  .c-card:hover{transform:translateX(6px)}
+  .c-card:nth-child(1){animation-delay:.15s}.c-card:nth-child(2){animation-delay:.32s}.c-card:nth-child(3){animation-delay:.49s}
+  .c-card .em{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px}
+  .c-card .nm{font-size:14px;font-weight:800}
+  .c-card .ds{font-size:11.5px;color:var(--sub)}
+  .toggle{margin-left:14px;width:38px;height:22px;border-radius:99px;background:var(--s4);position:relative;flex-shrink:0}
+  .toggle::after{content:'';position:absolute;top:3px;right:3px;width:16px;height:16px;border-radius:50%;background:#fff;
+    animation:tgl .6s ease backwards}
+  @keyframes tgl{from{transform:translateX(-14px)}to{transform:none}}
+
+  .metric{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:12px 20px;text-align:center;
+    transition:transform .25s,box-shadow .25s}
+  .metric:hover{transform:translateY(-4px);box-shadow:0 8px 20px rgba(15,23,42,.09)}
+  .metric .v{font-size:18px;font-weight:800}
+  .metric .k{font-size:11.5px;color:var(--sub);font-weight:600;margin-top:2px}
+  .metrics{display:flex;gap:14px;justify-content:center;margin-top:22px;flex-wrap:wrap}
+
+  /* 진행바/컨트롤 */
+  .stage-foot{border-top:1px solid var(--line);padding:16px 26px;display:flex;align-items:center;gap:16px;background:#fbfcfe}
+  .pbar{flex:1;height:9px;background:var(--line);border-radius:99px;overflow:hidden;position:relative}
+  .pbar i{display:block;height:100%;width:0;border-radius:99px;position:relative;
+    background:linear-gradient(90deg,var(--s1),var(--s2),var(--s4));transition:width .5s ease}
+  .pbar i::after{content:'';position:absolute;inset:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);
+    transform:translateX(-100%);animation:stripflow 1.8s linear infinite}
+  .ctrl{display:flex;gap:8px}
+  .ctrl button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 14px;font-size:13px;
+    font-weight:700;cursor:pointer;color:var(--ink);transition:all .15s}
+  .ctrl button:hover{background:#f1f5f9;transform:translateY(-1px)}
+  .ctrl button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .status-chip{font-size:12px;font-weight:800;padding:6px 12px;border-radius:999px;background:var(--s2-bg);color:var(--s2);white-space:nowrap}
+
+  .start-btn{background:linear-gradient(135deg,#3b82f6,#7c3aed);color:#fff;border:none;border-radius:14px;
+    padding:15px 38px;font-size:16px;font-weight:800;cursor:pointer;position:relative;overflow:hidden;
+    box-shadow:0 8px 22px rgba(124,58,237,.35);transition:transform .15s}
+  .start-btn::after{content:'';position:absolute;top:0;left:-70%;width:45%;height:100%;transform:skewX(-20deg);
+    background:linear-gradient(105deg,transparent,rgba(255,255,255,.5),transparent);animation:sheen 2.4s infinite}
+  .start-btn:hover{transform:translateY(-2px)}
+  .start-btn:active{transform:scale(.97)}
+
+  .done-check{width:100px;height:100px;border-radius:50%;background:radial-gradient(circle at 32% 28%,#fbbf24,var(--s4));
+    color:#fff;font-size:50px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;
+    animation:pop .5s cubic-bezier(.34,1.56,.64,1);box-shadow:0 0 0 10px rgba(217,119,6,.12),0 12px 30px rgba(217,119,6,.3)}
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
+
+  @media(max-width:860px){
+    .step .lbl{display:none}
+    .scene{padding:26px 18px}
+    .poc-grid,.sdk-flow,.ops-wrap,.custom-wrap{flex-direction:column;gap:20px}
+    .provision-flow{grid-template-columns:1fr;gap:12px}
+    .flow-arrow{transform:rotate(90deg)}
+    .arrow,.brace{transform:rotate(90deg)}
+    .admin-grid{grid-template-columns:1fr}
+    .ops-cards{grid-template-columns:1fr 1fr}
+  }
+  /* 통합 보고서 테마 */
+  :root{--ink:#111827;--sub:#526071;--line:#dbe3ef;--report-blue:#1d4ed8;--report-cyan:#0891b2;--report-violet:#6d28d9;--report-card:#fff}
+  body{background:linear-gradient(180deg,#f8fafc 0%,#eef4fb 100%);color:var(--ink)}
+  .bg-blob{display:none!important}
+  header .badge{background:#111827;border:1px solid rgba(255,255,255,.12);box-shadow:0 8px 20px rgba(15,23,42,.14)}
+  header h1 span{background:linear-gradient(90deg,var(--report-blue),var(--report-cyan));-webkit-background-clip:text;background-clip:text;color:transparent;animation:none}
+  .stepper-card,.stage{background:rgba(255,255,255,.96);border-color:var(--line);box-shadow:0 16px 42px rgba(15,23,42,.08);backdrop-filter:blur(8px)}
+  .region{border:1px solid rgba(15,23,42,.04)}
+  .step .dot{border-width:2px;box-shadow:0 4px 12px rgba(15,23,42,.08)}
+  .step.active .dot{animation:none;transform:scale(1.12)}
+  .step.active::after{display:none}
+  .step.done::before,.step.active::before{background:linear-gradient(90deg,var(--report-blue),var(--report-cyan))}
+  .scene-head .no{box-shadow:0 8px 18px rgba(15,23,42,.14)}
+  .scene-head h2{color:#111827}
+  .scene-desc{color:#526071;font-weight:760}
+  .phone,.poc-page,.sdk-core,.m-app,.flow-card,.portal-ui,.wallet-logo-tile,.admin-pill,.ops-card,.admin-card,.c-card,.metric,.company-node .big{background:var(--report-card);border-color:var(--line);box-shadow:0 12px 28px rgba(15,23,42,.07)}
+  .stage-foot{background:#f8fafc;border-color:var(--line)}
+  .pbar{height:8px;background:#e5edf6}
+  .pbar span{background:linear-gradient(90deg,var(--report-blue),var(--report-cyan))}
+  .status-chip{border:1px solid rgba(29,78,216,.14);font-weight:900}
+  .ctrl button{border-radius:10px;border-color:var(--line);font-weight:850}
+  .ctrl button.primary,.start-btn{background:#111827;color:#fff;border-color:#111827;box-shadow:0 10px 22px rgba(15,23,42,.18)}
+  /* 로고 이미지 표시 확대 */
+  .wallet-logo-tile{padding:0;overflow:hidden}
+  .wallet-logo-tile img{width:100%;height:100%;object-fit:cover;object-position:center top;transform:none;transform-origin:center}
+  img[src*="디지털월렛 메인.jpg"]{object-fit:cover;object-position:center top;transform:none;transform-origin:center}
+  /* 상단바 슬림 모드 */
+  .stepper-card{padding:5px 14px 6px;margin-bottom:8px;border-radius:12px}
+  .regions{display:flex;gap:6px;margin-bottom:3px}
+  .region{font-size:9px;padding:2px 0;border-radius:7px}
+  .stepper{align-items:flex-start}
+  .step{flex-direction:column;justify-content:flex-start;gap:0;min-width:0}
+  .step .dot{width:23px;height:23px;font-size:10px;border-width:2px;flex:0 0 auto}
+  .step .lbl{margin-top:2px;font-size:10px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .step .lbl br{display:none}
+  .step::before{top:11.5px;left:calc(-50% + 11.5px);width:calc(100% - 23px);height:2px}
+  .step.active::after{display:none}
+</style>
+</head>
+<body>
+<div class="bg-blob b1"></div><div class="bg-blob b2"></div><div class="bg-blob b3"></div>
+<canvas id="confetti"></canvas>
+<div class="wrap">
+
+  <header>
+    <h1>NHN KCP <span>대형가맹점 B2B 인프라 구축</span></h1>
+    <p>단일 서비스 PoC에서 → 대형가맹점 대상 디지털월렛 결제 인프라 구축으로</p>
+  </header>
+
+  <!-- 상단 스테퍼 -->
+  <div class="stepper-card">
+    <div class="regions">
+      <div class="region poc">✅ PoC 완료</div>
+      <div class="region exp">🚀 대형가맹점 B2B 인프라 구축</div>
+    </div>
+    <div class="stepper" id="stepper">
+      <div class="step" data-c="0" data-i="0"><div class="dot"><span class="num">P</span><span class="chk">✓</span></div><div class="lbl">PoC<br>E2E 검증</div></div>
+      <div class="step" data-c="1" data-i="1"><div class="dot"><span class="num">1</span><span class="chk">✓</span></div><div class="lbl">기업 앱 내<br>월렛 임베딩</div></div>
+      <div class="step" data-c="2" data-i="2"><div class="dot"><span class="num">2</span><span class="chk">✓</span></div><div class="lbl">기업 주체<br>월렛 운영</div></div>
+      <div class="step" data-c="3" data-i="3"><div class="dot"><span class="num">3</span><span class="chk">✓</span></div><div class="lbl">3대 관리자<br>페이지 제공</div></div>
+      <div class="step" data-c="4" data-i="4"><div class="dot"><span class="num">4</span><span class="chk">✓</span></div><div class="lbl">맞춤형<br>결제인프라 제공</div></div>
+    </div>
+  </div>
+
+  <!-- 중앙 스테이지 -->
+  <div class="stage">
+    <div class="zone-strip" id="zoneStrip"></div>
+
+    <!-- 시작 화면 -->
+    <div class="scene show" id="scene-start">
+      <div class="scene-head"><h2>🧭 대형가맹점 B2B 인프라 구축 로드맵</h2></div>
+      <p class="scene-desc">PAYCO 단일 서비스로 검증을 마친 스테이블코인 결제,<br>이제 <b>모든 기업의 앱</b>에 담습니다.</p>
+      <div class="visual" style="flex-direction:column;gap:26px">
+        <div style="display:flex;align-items:center;gap:22px;font-size:15px;font-weight:800">
+          <span style="background:var(--poc-bg);color:var(--poc);padding:10px 20px;border-radius:12px">PoC · 단일 서비스</span>
+          <span class="arrow">➜</span>
+          <span style="background:linear-gradient(135deg,var(--s1),var(--s2));color:#fff;padding:10px 20px;border-radius:12px;box-shadow:0 6px 18px rgba(124,58,237,.3)">대형가맹점 B2B 인프라 구축</span>
+        </div>
+        <button class="start-btn" onclick="show(0)">▶ 확장 로드맵 보기</button>
+      </div>
+    </div>
+
+    <!-- P. PoC 요약 -->
+    <div class="scene" id="scene-0">
+      <div class="scene-head"><div class="no" style="background:var(--poc)">PoC</div><h2>결제 특화 메인넷 구축 , 디지털월렛 E2E 검증</h2></div>
+      <p class="scene-desc">NHN KCP는 아발란체 기반 결제 특화 메인넷과 디지털월렛을 구축하여, <b>스테이블코인 결제·실시간 정산·글로벌 결제 인프라</b>의 PoC 검증을 완료</p>
+      <div class="visual"><div class="poc-grid">
+        <div class="phone"><div class="screen">
+          <div class="app-top" style="background:var(--payco)">PAYCO</div>
+          <div class="app-body">
+            <div class="wallet-chip"><div class="t">DIGITAL WALLET</div><div class="v">5,000 KRWPS</div></div>
+            <div class="app-menu"><i>💳</i><i>📤</i><i>📥</i><i>🧾</i></div>
+          </div>
+        </div></div>
+        <div class="brace">＋</div>
+        <div class="poc-pages">
+          <div class="poc-page"><div class="ic" style="background:var(--s2-bg)">🗂️</div><div><div class="nm">월렛 관리자</div><div class="ds">회원 · 월렛 관리</div></div></div>
+          <div class="poc-page"><div class="ic" style="background:var(--s1-bg)">🏪</div><div><div class="nm">가맹점 관리자</div><div class="ds">결제 · 정산 관리</div></div></div>
+          <div class="poc-page"><div class="ic" style="background:var(--s3-bg)">📡</div><div><div class="nm">메인넷 관리자</div><div class="ds">체인 현황 모니터링</div></div></div>
+        </div>
+      </div></div>
+      <div class="metrics">
+        <div class="metric"><div class="v">결제 2,392건</div><div class="k">100% 성공률</div></div>
+        <div class="metric"><div class="v">정산 418건</div><div class="k">100% 성공률</div></div>
+        <div class="metric"><div class="v">1.77초</div><div class="k">오프라인 결제</div></div>
+        <div class="metric"><div class="v">1.87초</div><div class="k">온라인 결제</div></div>
+        <div class="metric"><div class="v">암호화</div><div class="k">보안 처리</div></div>
+        <div class="metric"><div class="v">1시간</div><div class="k">자동 정산</div></div>
+      </div>
+    </div>
+
+    <!-- 1. SDK/API 임베딩 -->
+    <div class="scene" id="scene-1">
+      <div class="scene-head"><div class="no" style="background:var(--s1)">1</div><h2>대형가맹점 B2B 인프라 구축</h2></div>
+      <p class="scene-desc">가맹점은 신청페이지에서 원클릭 결제 인프라 신청을 통해, <b>NHN KCP의 글로벌 결제인프라, 결제 특화 메인넷·디지털월렛·관리자 페이지</b>를 제공 받을 수 있습니다.</p>
+      <div class="visual"><div class="provision-flow">
+        <div class="flow-card">
+          <div class="flow-step">STEP 01</div>
+          <div class="merchant-hub">🏢</div>
+          <div class="label">대형가맹점</div>
+          <div class="sector-list">
+            <div class="sector">뷰티·헬스</div>
+            <div class="sector">이커머스</div>
+            <div class="sector">F&amp;B·프랜차이즈</div>
+            <div class="sector">유통·멤버십</div>
+            <div class="sector wide">그 외</div>
+          </div>
+          <div class="sub">업종별 기업 고객</div>
+        </div>
+        <div class="flow-arrow"><span>➜</span></div>
+        <div class="flow-card">
+          <div class="flow-step">STEP 02</div>
+          <div class="infra-checklist">
+            <div class="check-row"><span class="box">✓</span><span>메인넷 연동</span></div>
+            <div class="check-row"><span class="box">✓</span><span>네트워크 선택</span></div>
+            <div class="check-row"><span class="box">✓</span><span>사용 토큰 선택</span></div>
+            <div class="token-select">
+              <div class="token-pill"><span class="box">✓</span>USDT</div>
+              <div class="token-pill"><span class="box">✓</span>USDC</div>
+            </div>
+          </div>
+          <div class="label">NHN KCP 결제 인프라<br>신청 페이지</div>
+          <div class="sub">옵션 선택형 인프라 신청</div>
+        </div>
+        <div class="flow-arrow"><span>➜</span></div>
+        <div class="flow-card">
+          <div class="flow-step">STEP 03</div>
+          <div class="wallet-logo-tile"><img src="../이미지 보관폴더/디지털월렛 메인.jpg" alt="NHN KCP 디지털월렛 로고"></div>
+          <div class="label">디지털월렛 생성</div>
+          <div class="sub">기업 앱 내 임베딩</div>
+        </div>
+        <div class="flow-arrow"><span>➜</span></div>
+        <div class="flow-card">
+          <div class="flow-step">STEP 04</div>
+          <div class="globe"><span>NHN KCP<br>Mainnet</span></div>
+          <div class="label">결제 특화 메인넷 연동</div>
+          <div class="sub">글로벌 결제 기반 연결</div>
+        </div>
+        <div class="flow-arrow"><span>➜</span></div>
+        <div class="flow-card">
+          <div class="flow-step">STEP 05</div>
+          <div class="admin-stack">
+            <div class="admin-pill">🗂️ 월렛 관리자</div>
+            <div class="admin-pill">🏪 가맹점 관리자</div>
+            <div class="admin-pill">📡 메인넷 관리자</div>
+          </div>
+          <div class="sub">실시간 운영·정산·관제 도구 제공</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 2. 기업 주체 운영 -->
+    <div class="scene" id="scene-2">
+      <div class="scene-head"><div class="no" style="background:var(--s2)">2</div><h2>기업이 주체가 되는 월렛 운영</h2></div>
+      <p class="scene-desc">인프라는 <b>NHN KCP</b>가, 운영의 주도권은 <b>B2B 기업</b>이 직접 자사 브랜드로 관리 가능한 서비스를 제공합니다.</p>
+      <div class="visual"><div class="ops-wrap">
+        <div class="company-node">
+          <div class="big">🏢</div>
+          <div style="font-size:14px;font-weight:800">기업 (대형가맹점)</div>
+          <div style="font-size:11.5px;color:var(--sub)">운영 주체</div>
+        </div>
+        <div class="arrow">➜</div>
+        <div class="ops-cards">
+          <div class="ops-card"><div class="em">👥</div><div class="nm">회원 관리</div><div class="ds">가입 · KYC · 등급</div></div>
+          <div class="ops-card"><div class="em">💳</div><div class="nm">결제 관리</div><div class="ds">승인 · 취소 · 내역</div></div>
+          <div class="ops-card"><div class="em">🧮</div><div class="nm">정산 관리</div><div class="ds">24/7 · 1시간 자동정산</div></div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 3. 3대 관리자 페이지 -->
+    <div class="scene" id="scene-3">
+      <div class="scene-head"><div class="no" style="background:var(--s3)">3</div><h2>디지털월렛 + 3대 관리자 페이지</h2></div>
+      <p class="scene-desc">제공된 결제 인프라에 대한 <b>E2E 실시간 현황 관리</b>가 가능한 관제시스템을 제공합니다.<br>블록체인 전문 지식 없이도 <b>결제·정산·회원관리</b>를 손쉽게 운영할 수 있습니다.</p>
+      <div class="visual"><div class="admin-grid">
+        <div class="admin-card">
+          <div class="bar" style="background:var(--s2)"></div>
+          <div class="bd">
+            <div class="em" style="background:var(--s2-bg)">🗂️</div>
+            <h3>월렛(내부) 관리자</h3><div class="en">INTERNAL ADMIN</div>
+            <ul><li>👥 회원 관리</li><li>👛 디지털월렛 관리</li><li>🔐 권한 · 내부 운영</li></ul>
+          </div>
+        </div>
+        <div class="admin-card">
+          <div class="bar" style="background:var(--s1)"></div>
+          <div class="bd">
+            <div class="em" style="background:var(--s1-bg)">🏪</div>
+            <h3>파트너(가맹점) 관리자</h3><div class="en">PARTNER ADMIN</div>
+            <ul><li>💳 가맹점 결제 관리</li><li>🧮 정산 관리</li><li>📊 매출 리포트</li></ul>
+          </div>
+        </div>
+        <div class="admin-card">
+          <div class="bar" style="background:var(--s3)"></div>
+          <div class="bd">
+            <div class="em" style="background:var(--s3-bg)">📡</div>
+            <h3>메인넷 관리자</h3><div class="en">MAINNET MONITOR</div>
+            <ul><li>⛓️ 체인 현황 실시간</li><li>📦 블록 · Tx 모니터링</li></ul>
+            <div class="mini-mon">
+              <span class="live">LIVE</span>
+              <svg viewBox="0 0 120 34">
+                <polyline points="0,26 14,22 28,24 42,14 56,18 70,9 84,13 98,6 112,10 120,4"
+                  fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round">
+                  <animate attributeName="points" dur="2.4s" repeatCount="indefinite"
+                    values="0,26 14,22 28,24 42,14 56,18 70,9 84,13 98,6 112,10 120,4;
+                            0,24 14,25 28,18 42,20 56,11 70,15 84,8 98,12 112,5 120,9;
+                            0,26 14,22 28,24 42,14 56,18 70,9 84,13 98,6 112,10 120,4"/>
+                </polyline>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 4. 커스터마이징 -->
+    <div class="scene" id="scene-4">
+      <div class="scene-head"><div class="no" style="background:var(--s4)">4</div><h2>맞춤형 결제인프라 제공</h2></div>
+      <p class="scene-desc">NHN KCP 디지털월렛은 각 가맹점의 니즈에 맞는 <b>맞춤형 디지털 월렛</b>이 제공가능한 모델로 설계되었습니다.</p>
+      <div class="visual"><div class="custom-wrap">
+        <div class="phone"><div class="screen">
+          <div class="app-top" style="background:linear-gradient(135deg,#1d4ed8,#7c3aed)">NHN KCP Wallet <span style="font-size:9px;background:#fff;color:#2563eb;padding:2px 6px;border-radius:99px;margin-left:auto">Custom</span></div>
+          <div class="app-body">
+            <div class="wallet-chip" style="background:#fff;color:#0f172a;border:1px solid var(--line);box-shadow:0 5px 14px rgba(37,99,235,.16)">
+              <img src="../이미지 보관폴더/디지털월렛 메인.jpg" alt="NHN KCP Wallet" style="width:100%;height:68px;object-fit:cover;object-position:center top;display:block;margin-bottom:6px;border-radius:12px">
+              <div class="v" style="color:#1d4ed8">12,400 KRWPS</div>
+              <div class="v" style="color:#7c3aed;margin-top:5px">10 AVAX</div>
+              <div class="v" style="color:#059669;margin-top:5px">6.09 USDT</div>
+            </div>
+            <div class="app-menu"><i>🎟️</i><i>💸</i><i>⭐</i><i>🧾</i></div>
+          </div>
+        </div></div>
+        <div class="custom-cards">
+          <div class="c-card"><div class="em" style="background:var(--s4-bg)">🎟️</div><div><div class="nm">쿠폰 결제</div><div class="ds">월렛 내 쿠폰 적용 결제</div></div><div class="toggle"></div></div>
+          <div class="c-card"><div class="em" style="background:var(--s4-bg)">💸</div><div><div class="nm">결제 페이백</div><div class="ds">결제 즉시 리워드 지급</div></div><div class="toggle"></div></div>
+          <div class="c-card"><div class="em" style="background:var(--s4-bg)">⭐</div><div><div class="nm">포인트 적립 · 사용</div><div class="ds">자체 포인트 연동</div></div><div class="toggle"></div></div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 완료 -->
+    <div class="scene" id="scene-done">
+      <div class="visual" style="flex-direction:column;padding-top:14px">
+        <div class="done-check">🚀</div>
+        <h2 style="font-size:24px;font-weight:800;margin-bottom:8px">단일 서비스에서 플랫폼으로</h2>
+        <p style="color:var(--sub);font-size:14.5px;text-align:center;line-height:1.7">
+          PoC로 검증한 스테이블코인 결제를 <b>대형가맹점 B2B 인프라 구축 모델</b>로 확장 —<br>
+          대형가맹점은 자사 앱과 브랜드 안에서 디지털월렛 결제 인프라를 운영할 수 있습니다.
+        </p>
+        <div class="metrics">
+          <div class="metric"><div class="v">SDK / API</div><div class="k">임베딩 방식</div></div>
+          <div class="metric"><div class="v">3종</div><div class="k">관리자 페이지 제공</div></div>
+          <div class="metric"><div class="v">맞춤형</div><div class="k">가맹점 커스터마이징</div></div>
+        </div>
+        <button class="start-btn" style="margin-top:26px;background:var(--ink);box-shadow:0 6px 16px rgba(15,23,42,.25)" onclick="reset()">↺ 처음부터 다시 보기</button>
+      </div>
+    </div>
+
+    <div class="stage-foot">
+      <span class="status-chip" id="statusChip">대기 중 · 로드맵 보기를 눌러주세요</span>
+      <div class="pbar"><i id="pfill"></i></div>
+      <div class="ctrl">
+        <button onclick="prev()">◀ 이전</button>
+        <button onclick="next()">다음 ▶</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOTAL = 5, FIRST_DELAY = 10000, STEP_DELAY = 22000;
+const stepMeta = [
+  {c:'--poc', bg:'--poc-bg', name:'PoC · 결제 특화 메인넷 및 디지털월렛 E2E 검증'},
+  {c:'--s1',  bg:'--s1-bg',  name:'1/4 · 대형가맹점 인프라 프로비저닝'},
+  {c:'--s2',  bg:'--s2-bg',  name:'2/4 · 기업 주체 월렛 운영'},
+  {c:'--s3',  bg:'--s3-bg',  name:'3/4 · 3대 관리자 페이지 제공'},
+  {c:'--s4',  bg:'--s4-bg',  name:'4/4 · 맞춤형 결제인프라 제공'}
+];
+let cur = -1, playing = false, timer = null;
+const steps = document.querySelectorAll('.step');
+steps.forEach(s => s.addEventListener('click', () => { pause(); show(+s.dataset.i); }));
+
+function show(i){
+  cur = i;
+  document.querySelectorAll('.scene').forEach(s => s.classList.remove('show'));
+  if(i < 0){
+    document.getElementById('scene-start').classList.add('show');
+    setChip('대기 중 · 로드맵 보기를 눌러주세요','var(--s2-bg)','var(--s2)'); setStrip('var(--line)');
+  } else if(i >= TOTAL){
+    document.getElementById('scene-done').classList.add('show');
+    setChip('✓ 확장 로드맵 완료','var(--s4-bg)','var(--s4)'); setStrip('var(--s4)'); fireConfetti();
+  } else {
+    document.getElementById('scene-'+i).classList.add('show');
+    const m = stepMeta[i];
+    setChip(m.name, `var(${m.bg})`, `var(${m.c})`); setStrip(`var(${m.c})`);
+  }
+  steps.forEach((s,idx)=>{ s.classList.toggle('done', idx<i || i>=TOTAL); s.classList.toggle('active', idx===i && i<TOTAL); });
+  document.getElementById('pfill').style.width = Math.max(0,Math.min(1,(i+1)/TOTAL))*100 + '%';
+}
+function setChip(t,bg,c){ const el=document.getElementById('statusChip'); el.textContent=t; el.style.background=bg; el.style.color=c; }
+function setStrip(c){ document.getElementById('zoneStrip').style.background = c; }
+
+function start(){ show(0); }
+function next(){ if(cur<TOTAL) show(cur+1); if(cur>=TOTAL) pause(); }
+function prev(){ if(cur>0) show(cur-1); pause(); }
+function currentDelay(){ return cur === 0 ? FIRST_DELAY : STEP_DELAY; }
+function scheduleNext(){
+  clearTimeout(timer);
+  timer = setTimeout(()=>{
+    if(cur>=TOTAL-1){ show(TOTAL); pause(); }
+    else { next(); if(playing) scheduleNext(); }
+  }, currentDelay());
+}
+function play(){
+  pause();
+  playing = true;
+  scheduleNext();
+}
+function pause(){ playing=false; clearTimeout(timer); }
+function reset(){ pause(); show(-1); }
+
+/* 컨페티 */
+const cvs=document.getElementById('confetti'), ctx=cvs.getContext('2d');
+let pieces=[], confettiRunning=false;
+function sizeCanvas(){ cvs.width=innerWidth; cvs.height=innerHeight; }
+addEventListener('resize',sizeCanvas); sizeCanvas();
+function fireConfetti(){
+  const colors=['#2563eb','#7c3aed','#0891b2','#d97706','#f59e0b','#34d399'];
+  pieces=Array.from({length:140},()=>({
+    x:Math.random()*cvs.width, y:-20-Math.random()*cvs.height*.4,
+    w:6+Math.random()*7, h:9+Math.random()*8,
+    c:colors[Math.random()*colors.length|0],
+    vy:2.2+Math.random()*3.2, vx:-1.6+Math.random()*3.2,
+    r:Math.random()*Math.PI, vr:-.12+Math.random()*.24
+  }));
+  if(!confettiRunning){ confettiRunning=true; tick(); }
+}
+function tick(){
+  ctx.clearRect(0,0,cvs.width,cvs.height);
+  pieces.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.r+=p.vr;
+    ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r);
+    ctx.fillStyle=p.c; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); ctx.restore();
+  });
+  pieces=pieces.filter(p=>p.y<cvs.height+30);
+  if(pieces.length) requestAnimationFrame(tick);
+  else{ confettiRunning=false; ctx.clearRect(0,0,cvs.width,cvs.height); }
+}
+show(-1);
+
+
+
+</script>
+</body>
+</html>

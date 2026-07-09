@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NHN KCP StableCoin PoC 리포트</title>
+<style>
+  :root{
+    --s0:#64748b; --s0-bg:#f1f5f9;
+    --s1:#2563eb; --s1-bg:#eff6ff;
+    --s2:#7c3aed; --s2-bg:#f5f3ff;
+    --s3:#0891b2; --s3-bg:#ecfeff;
+    --s4:#059669; --s4-bg:#ecfdf5;
+    --s5:#f59e0b; --s5-bg:#fffbeb;
+    --ink:#0f172a; --sub:#64748b; --line:#e2e8f0;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif}
+  html,body{height:100%}
+  body{height:100vh;background:#f6f8fc;color:var(--ink);overflow:hidden}
+  .bg-blob{position:fixed;border-radius:50%;filter:blur(90px);opacity:.32;z-index:0;animation:drift 16s ease-in-out infinite alternate}
+  .bg-blob.b1{width:520px;height:520px;background:#93c5fd;top:-160px;left:-140px}
+  .bg-blob.b2{width:460px;height:460px;background:#c4b5fd;top:32%;right:-160px;animation-delay:-5s}
+  .bg-blob.b3{width:420px;height:420px;background:#6ee7b7;bottom:-160px;left:32%;animation-delay:-10s}
+  @keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(50px,40px) scale(1.12)}}
+  .wrap{max-width:1360px;height:100vh;margin:0 auto;padding:6px 14px 8px;position:relative;z-index:1;display:flex;flex-direction:column;min-height:0}
+  header{text-align:center;margin-bottom:4px;flex:0 0 auto}
+  header h1{font-size:20px;font-weight:950;letter-spacing:-.02em;line-height:1.1}
+  header h1 span{background:linear-gradient(90deg,var(--s1),var(--s2),var(--s3));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .top-agendas{display:none;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px 8px;margin:0 auto 7px;max-width:1260px;text-align:left;flex:0 0 auto}
+  .top-agendas.show{display:grid}
+  .top-agendas.single{grid-template-columns:1fr;max-width:980px}
+  .top-agenda{display:flex;align-items:flex-start;gap:7px;min-width:0;border:1px solid rgba(37,99,235,.14);background:rgba(255,255,255,.78);border-radius:10px;padding:6px 9px;box-shadow:0 2px 10px rgba(15,23,42,.04)}
+  .top-agenda b{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--ink);color:#fff;font-size:10.5px;font-weight:950}
+  .top-agenda span{font-size:11px;line-height:1.25;color:#334155;font-weight:850;word-break:keep-all}
+  .top-agendas.single .top-agenda{align-items:center;justify-content:center;padding:9px 14px}
+  .top-agendas.single .top-agenda b{width:25px;height:25px;font-size:13px}
+  .top-agendas.single .top-agenda span{font-size:15px;line-height:1.25;font-weight:900}
+  .stepper-card{background:rgba(255,255,255,.86);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:14px;padding:6px 16px 7px;box-shadow:0 4px 24px rgba(15,23,42,.06);margin-bottom:5px;flex:0 0 auto}
+  .regions{display:flex;gap:8px;margin-bottom:5px}
+  .region{text-align:center;font-size:9.5px;font-weight:900;padding:3px 0;border-radius:8px}
+  .region.r0{flex:1;background:var(--s0-bg);color:var(--s0)}
+  .region.r1{flex:3;background:linear-gradient(90deg,var(--s1-bg),var(--s2-bg),var(--s3-bg));color:var(--s2)}
+  .stepper{display:flex;align-items:flex-start}
+  .step{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;cursor:pointer}
+  .step .dot{width:27px;height:27px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:11px;background:#fff;border:2.5px solid var(--line);color:#94a3b8;transition:all .35s;position:relative;z-index:2}
+  .step .lbl{margin-top:3px;font-size:9.5px;font-weight:800;color:#94a3b8;text-align:center;line-height:1.12}
+  .step::before{content:'';position:absolute;top:13.5px;left:calc(-50% + 13.5px);width:calc(100% - 27px);height:3px;background:var(--line);z-index:1}
+  .step:first-child::before{display:none}
+  .step.done .dot,.step.active .dot{border-color:transparent;color:#fff}
+  .step.done .lbl,.step.active .lbl{color:var(--ink)}
+  .step[data-c="0"].done .dot,.step[data-c="0"].active .dot{background:var(--s0)}
+  .step[data-c="1"].done .dot,.step[data-c="1"].active .dot{background:var(--s1)}
+  .step[data-c="2"].done .dot,.step[data-c="2"].active .dot{background:var(--s2)}
+  .step[data-c="3"].done .dot,.step[data-c="3"].active .dot{background:var(--s3)}
+  .step[data-c="4"].done .dot,.step[data-c="4"].active .dot{background:var(--s4)}
+  .step.done::before,.step.active::before{background:linear-gradient(90deg,var(--s1),var(--s2),var(--s3))}
+  .stage{background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:20px;box-shadow:0 12px 40px rgba(15,23,42,.08);overflow:hidden;position:relative;flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  .zone-strip{height:4px;background:var(--line);flex:0 0 auto}
+  .scene{display:none;padding:10px 24px 10px;min-height:0;overflow:hidden;animation:sceneIn .55s cubic-bezier(.22,1,.36,1)}
+  .scene.show{display:flex;flex-direction:column;flex:1 1 auto}
+  @keyframes sceneIn{from{opacity:0;transform:translateY(20px) scale(.985)}to{opacity:1;transform:none}}
+  .scene-head{display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:2px;flex:0 0 auto}
+  .scene-head .no{min-width:30px;height:30px;padding:0 10px;border-radius:999px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;box-shadow:0 4px 12px rgba(15,23,42,.2)}
+  .scene-head h2{font-size:17px;font-weight:950;letter-spacing:-.02em}
+  .scene-desc{text-align:center;color:var(--sub);font-size:11.5px;margin-bottom:7px;line-height:1.35;flex:0 0 auto;font-weight:700}
+  .visual{display:flex;align-items:center;justify-content:center;position:relative;flex:1 1 auto;min-height:0}
+  .overview{display:grid;grid-template-columns:minmax(260px,.8fr) 28px minmax(520px,1.2fr);gap:18px;align-items:center}
+  .big-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px 20px;box-shadow:0 10px 24px rgba(15,23,42,.08);text-align:center;min-width:0}
+  .big-card .icon{width:72px;height:72px;border-radius:22px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:34px;background:linear-gradient(135deg,var(--s1-bg),var(--s2-bg))}
+  .big-card .logo-mark{width:112px;height:112px;object-fit:contain;margin:0 auto 7px;display:block}
+  .big-card h3{font-size:17px;font-weight:950}
+  .big-card p{margin-top:6px;color:var(--sub);font-size:11.3px;line-height:1.4;font-weight:750}
+  .poc-output-card{padding:14px 16px;text-align:left}
+  .poc-output-card h3{text-align:center;font-size:15.5px;line-height:1.25;margin-bottom:10px}
+  .poc-output-items{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:10px}
+  .poc-output-item{border:1px solid #e6edf7;background:#f8fafc;border-radius:12px;min-height:84px;padding:8px 6px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .poc-output-item img{width:58px;height:58px;object-fit:cover;border-radius:12px;border:1px solid #edf2f7;background:#fff;margin-bottom:5px}
+  .poc-output-item .ico{width:42px;height:42px;border-radius:13px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:23px;margin-bottom:7px}
+  .poc-output-item b{font-size:9.7px;line-height:1.18;font-weight:950;color:#334155;word-break:keep-all}
+  .poc-output-summary{border:1px solid rgba(37,99,235,.16);background:linear-gradient(135deg,#eff6ff,#f8fafc);border-radius:13px;padding:9px 10px;display:grid;gap:5px}
+  .poc-output-summary h4{font-size:12.5px;font-weight:950;color:#1d4ed8;text-align:center;margin-bottom:2px}
+  .poc-output-summary div{display:flex;justify-content:space-between;gap:8px;font-size:10px;line-height:1.25;color:#475569;font-weight:850}
+  .poc-output-summary b{color:#0f172a;font-weight:950;white-space:nowrap}
+  .start-agenda-card{min-width:0;padding:12px 14px;text-align:left}
+  .start-agenda-card h3{text-align:center;margin-bottom:7px}
+  .start-agenda-list{display:grid;grid-template-columns:1fr;gap:4px}
+  .start-agenda{display:flex;align-items:flex-start;gap:7px;border:1px solid var(--line);background:#f8fafc;border-radius:9px;padding:4px 7px}
+  .start-agenda b{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;border-radius:50%;background:linear-gradient(135deg,var(--s1),var(--s2));color:#fff;font-size:9px;font-weight:950}
+  .start-agenda span{display:block;font-size:9.6px;line-height:1.18;color:#334155;font-weight:850;word-break:keep-all}
+  .start-agenda small{display:block;margin-top:1px;font-size:8.9px;line-height:1.16;color:#64748b;font-weight:800;word-break:keep-all}
+  .arrow{font-size:26px;color:#a5b4fc;text-shadow:0 0 14px rgba(124,58,237,.35)}
+  .metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:100%;max-width:940px}
+  .metric-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px 18px;text-align:center;box-shadow:0 8px 22px rgba(15,23,42,.08)}
+  .metric-card .v{font-size:26px;font-weight:950;letter-spacing:-.03em}
+  .metric-card .k{margin-top:6px;font-size:12px;color:var(--sub);font-weight:850}
+  .metric-card .s{margin-top:10px;font-size:11px;color:#475569;line-height:1.45;font-weight:750}
+  .wallet-showcase{display:grid;grid-template-columns:1fr 1.18fr 1fr;gap:12px;width:100%;max-width:1200px;align-items:stretch}
+  .wallet-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:11px;box-shadow:0 10px 24px rgba(15,23,42,.08);display:grid;grid-template-rows:auto 1fr;gap:9px;min-height:354px}
+  .wallet-shot{border:1px solid #eef2f7;border-radius:15px;background:linear-gradient(180deg,#fff,#f8fafc);min-height:205px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .wallet-shot img{width:100%;height:100%;max-height:246px;object-fit:contain;display:block}
+  .wallet-card h3{font-size:14px;font-weight:950;text-align:center;margin-bottom:6px}
+  .wallet-features{display:grid;gap:6px;align-content:start}
+  .wallet-feature{border:1px solid #e3eaf5;background:#fff;border-radius:11px;padding:8px 9px;box-shadow:0 5px 14px rgba(15,23,42,.04)}
+  .wallet-feature b{display:inline-flex;align-items:center;gap:5px;font-size:11.3px;font-weight:950;color:#0f172a;background:#f1f5f9;border-radius:999px;padding:3px 8px}
+  .wallet-feature span{display:block;margin-top:5px;font-size:9.6px;line-height:1.34;color:#475569;font-weight:800;word-break:keep-all}
+  .wallet-feature-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+  .wallet-feature-grid .wallet-feature{padding:7px 8px}
+  .settlement-layout{display:grid;grid-template-columns:minmax(560px,1.05fr) minmax(430px,.95fr);gap:18px;width:100%;max-width:1220px;align-items:stretch}
+  .settlement-diagram,.settlement-summary{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 10px 24px rgba(15,23,42,.08);min-height:350px}
+  .settlement-diagram{display:flex;flex-direction:column;justify-content:center;gap:14px}
+  .settlement-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .settlement-title h3{font-size:15px;font-weight:950}
+  .settlement-title span{border-radius:999px;background:var(--s1-bg);color:var(--s1);padding:5px 9px;font-size:10.5px;font-weight:950}
+  .settlement-lane{display:grid;grid-template-columns:1fr 54px 1.1fr 54px 1fr;align-items:center;gap:8px}
+  .settlement-node{border:1px solid var(--line);border-radius:18px;background:#f8fafc;padding:14px 12px;text-align:center;min-height:112px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .settlement-node .ico{font-size:30px;margin-bottom:7px}
+  .settlement-node .wallet-logo{width:116px;height:116px;object-fit:contain;margin-bottom:6px;display:block}
+  .settlement-node b{font-size:13px;font-weight:950;line-height:1.25}
+  .settlement-node span{display:block;margin-top:4px;font-size:10px;line-height:1.25;color:var(--sub);font-weight:820}
+  .settlement-node.wallet{background:var(--s1-bg);border-color:#bfdbfe}
+  .settlement-node.mainnet{background:radial-gradient(circle at 30% 20%,#e0f2fe,#60a5fa 42%,#1d4ed8);color:#fff;border-color:#93c5fd;box-shadow:inset -14px -18px 28px rgba(15,23,42,.18)}
+  .settlement-node.mainnet span{color:rgba(255,255,255,.86)}
+  .settlement-arrow{text-align:center;color:#a5b4fc;font-size:28px;font-weight:950}
+  .wallet-split{display:grid;gap:8px}
+  .wallet-target{border:1px solid var(--line);border-radius:15px;background:#fff;padding:10px 12px;display:flex;align-items:center;gap:9px}
+  .wallet-target .ico{font-size:24px}.wallet-target b{display:block;font-size:12px}.wallet-target span{display:block;margin-top:2px;font-size:9.5px;color:var(--sub);font-weight:800}
+  .settlement-badge-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .settlement-badge{border-radius:12px;background:#f8fafc;border:1px solid var(--line);padding:8px 9px;text-align:center}
+  .settlement-badge b{display:block;font-size:12px}.settlement-badge span{display:block;margin-top:2px;font-size:9.5px;color:var(--sub);font-weight:800}
+  .settlement-summary{display:grid;gap:9px}
+  .settlement-step{display:grid;grid-template-columns:40px 1fr;gap:10px;align-items:start;border:1px solid #eef2f7;background:#f8fafc;border-radius:14px;padding:10px}
+  .settlement-step .mark{width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:22px;background:#fff;border:1px solid var(--line)}
+  .settlement-step h3{font-size:13.5px;font-weight:950;line-height:1.25;margin-bottom:4px}
+  .settlement-step p{font-size:10.5px;line-height:1.42;color:#475569;font-weight:800;word-break:keep-all}
+  .settlement-step em{font-style:normal;color:var(--s1);font-weight:950}
+  .settlement-visual-wrap{width:100%;max-width:1230px;margin:0 auto;display:grid;grid-template-rows:minmax(0,1fr) auto;gap:6px;min-height:0}
+  .settlement-visual-diagram{background:#fafbfc;border:1px solid #e2e8f0;border-radius:15px;padding:6px 8px 3px;box-shadow:0 8px 20px rgba(15,23,42,.07);min-height:0;overflow:hidden}
+  .settlement-visual-diagram svg{width:100%;height:100%;max-height:235px;display:block}
+  .settlement-visual-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+  .settlement-visual-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:11px;padding:7px 8px;min-width:0;min-height:68px;display:grid;grid-template-columns:22px 1fr;grid-template-rows:auto 1fr;column-gap:6px;align-items:start}
+  .settlement-visual-step{grid-row:1 / span 2;display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;border-radius:50%;font-size:9px;font-weight:900;color:#fff;margin-top:1px}
+  .settlement-visual-card:nth-child(1) .settlement-visual-step,.settlement-visual-card:nth-child(2) .settlement-visual-step{background:#0969da}
+  .settlement-visual-card:nth-child(3) .settlement-visual-step{background:#7c3aed}
+  .settlement-visual-card:nth-child(4) .settlement-visual-step{background:#1a7f37}
+  .settlement-visual-card h4{font-size:10.4px;color:#1f2328;margin:0 0 2px;font-weight:950;line-height:1.15;white-space:nowrap}
+  .settlement-visual-card p{font-size:7.8px;color:#57606a;line-height:1.28;margin:0;font-weight:780;word-break:keep-all}
+  .settlement-visual-card p strong{color:#0969da;font-weight:950}
+  .scope-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;width:100%;max-width:1020px}
+  .scope{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px 16px;text-align:center;box-shadow:0 8px 22px rgba(15,23,42,.08)}
+  .scope .em{width:54px;height:54px;border-radius:16px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:27px;background:#f8fafc}
+  .scope h3{font-size:15px;font-weight:950}
+  .scope p{margin-top:8px;font-size:11.5px;line-height:1.45;color:var(--sub);font-weight:750}
+  .admin-page-layout{display:grid;grid-template-columns:minmax(610px,1.08fr) minmax(420px,.92fr);gap:18px;width:100%;max-width:1230px;align-items:stretch}
+  .admin-map,.admin-desc{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 10px 24px rgba(15,23,42,.08);min-height:350px}
+  .admin-map{display:flex;flex-direction:column;gap:12px;justify-content:center}
+  .admin-source-row{display:grid;grid-template-columns:1fr 44px 1fr;gap:8px;align-items:center}
+  .admin-source{border:1px solid var(--line);background:#f8fafc;border-radius:17px;min-height:96px;padding:12px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .admin-source .ico{font-size:28px;margin-bottom:6px}.admin-source .source-logo{width:112px;height:112px;object-fit:contain;margin-bottom:5px;display:block}.admin-source b{font-size:13px;font-weight:950}.admin-source span{font-size:9.8px;color:var(--sub);font-weight:800;margin-top:3px}
+  .admin-source.mainnet{background:radial-gradient(circle at 30% 20%,#e0f2fe,#60a5fa 44%,#1d4ed8);color:#fff;border-color:#93c5fd}.admin-source.mainnet span{color:rgba(255,255,255,.86)}
+  .admin-flow-arrow{text-align:center;font-size:24px;font-weight:950;color:#a5b4fc}
+  .admin-branch-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;position:relative}
+  .admin-branch{border:1px solid var(--line);border-radius:15px;background:#f8fafc;padding:10px;text-align:center;min-width:0}
+  .admin-branch img{width:100%;height:95px;object-fit:contain;border-radius:10px;background:#fff;border:1px solid #edf2f7;margin-bottom:7px}
+  .admin-branch b{display:block;font-size:11.5px;font-weight:950;line-height:1.2}.admin-branch span{display:block;margin-top:3px;font-size:9.2px;color:var(--sub);font-weight:800;line-height:1.25}
+  .admin-branch-title{text-align:center;border-radius:999px;background:var(--s2-bg);color:var(--s2);padding:5px 10px;font-size:10.5px;font-weight:950;align-self:center}
+  .admin-desc{display:grid;gap:9px}
+  .admin-desc-card{display:grid;grid-template-columns:42px 1fr;gap:10px;align-items:start;border:1px solid #eef2f7;background:#f8fafc;border-radius:14px;padding:10px}
+  .admin-desc-card .mark{width:42px;height:42px;border-radius:13px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:22px}
+  .admin-desc-card h3{font-size:13.5px;font-weight:950;margin-bottom:4px}.admin-desc-card p{font-size:10.5px;line-height:1.42;color:#475569;font-weight:800;word-break:keep-all}
+  .admin-desc-card ul{list-style:none;display:grid;gap:3px;margin-top:6px}.admin-desc-card li{font-size:9.6px;color:#334155;font-weight:820;line-height:1.3}
+  .remit-layout{display:grid;grid-template-columns:1fr 1fr;gap:18px;width:100%;max-width:1230px;align-items:stretch}
+  .remit-panel{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 10px 24px rgba(15,23,42,.08);min-height:350px;display:flex;flex-direction:column;gap:12px}
+  .remit-panel h3{font-size:16px;font-weight:950;text-align:center}
+  .remit-panel .lead{font-size:11px;line-height:1.45;color:#475569;font-weight:820;text-align:center;word-break:keep-all}
+  .remit-proof-grid{display:grid;grid-template-columns:1fr;gap:12px;flex:1}
+  .remit-proof-map{border:1px solid #e8eef7;background:#f8fafc;border-radius:16px;padding:14px;display:grid;grid-template-columns:1fr 46px 1fr;align-items:center;gap:10px;min-height:236px}
+  .remit-hub{min-height:188px;background:#fff}
+  .remit-target-stack{display:grid;gap:10px}
+  .remit-route-arrows{display:grid;grid-template-rows:1fr 1fr;gap:42px;align-items:center;justify-items:center;color:#7c3aed;font-size:24px;font-weight:950}
+  .remit-route-arrows .pair{display:flex;flex-direction:column;line-height:1;gap:1px}
+  .metamask-mark{width:58px;height:58px;border-radius:17px;background:linear-gradient(135deg,#fff7ed,#fed7aa);border:1px solid #fdba74;display:flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:5px}
+  .remit-flow-card{border:1px solid #e8eef7;background:#f8fafc;border-radius:16px;padding:13px;display:grid;gap:9px}
+  .remit-flow-title{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .remit-flow-title b{font-size:12px;font-weight:950}.remit-flow-title span{border-radius:999px;background:var(--s3-bg);color:var(--s3);font-size:9.5px;font-weight:950;padding:4px 8px}
+  .remit-lane{display:grid;grid-template-columns:1fr 44px 1fr;align-items:center;gap:8px}
+  .remit-node{min-height:88px;border:1px solid var(--line);border-radius:15px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:9px}
+  .remit-node img{width:76px;height:76px;object-fit:contain;margin-bottom:4px}.remit-hub img{width:98px;height:98px}.remit-node .ico{font-size:30px;margin-bottom:5px}
+  .remit-node b{font-size:11px;font-weight:950}.remit-node span{font-size:9px;color:var(--sub);font-weight:800;margin-top:2px}
+  .remit-bidir{display:flex;flex-direction:column;align-items:center;gap:2px;color:#7c3aed;font-size:21px;font-weight:950}
+  .remit-proof-note{border:1px solid rgba(8,145,178,.18);background:linear-gradient(135deg,#ecfeff,#f8fafc);border-radius:14px;padding:10px 12px;font-size:11px;line-height:1.45;color:#334155;font-weight:850;text-align:center}
+  .remit-dev-flow{display:grid;grid-template-columns:1fr 38px 1fr 38px 1fr;align-items:stretch;gap:8px;flex:1}
+  .remit-dev-step{border:1px solid var(--line);background:#f8fafc;border-radius:16px;padding:13px 11px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .remit-dev-step .ico{width:52px;height:52px;border-radius:16px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:9px}
+  .remit-dev-step b{font-size:13px;font-weight:950}.remit-dev-step p{font-size:10px;line-height:1.42;color:#475569;font-weight:800;margin-top:6px;word-break:keep-all}
+  .remit-dev-arrow{display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:950;color:#a5b4fc}
+  .remit-dev-tags{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+  .remit-dev-tags span{border-radius:10px;background:var(--s2-bg);color:var(--s2);padding:7px 8px;font-size:9.5px;font-weight:900;text-align:center}
+  .roadmap{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;width:100%;max-width:980px}
+  .road{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px 18px;box-shadow:0 8px 22px rgba(15,23,42,.08)}
+  .road .tag{display:inline-flex;border-radius:999px;padding:4px 10px;background:var(--s1-bg);color:var(--s1);font-size:10.5px;font-weight:950;margin-bottom:12px}
+  .road h3{font-size:16px;font-weight:950}
+  .road p{margin-top:8px;color:var(--sub);font-size:12px;line-height:1.55;font-weight:750}
+  .poc-report-layout{width:100%;display:grid;grid-template-columns:minmax(590px,1.16fr) minmax(350px,.84fr);gap:12px;align-items:stretch}
+  .poc-flow-panel,.poc-data-panel{background:#fff;border:1px solid var(--line);border-radius:18px;padding:13px 12px;box-shadow:0 10px 24px rgba(15,23,42,.08);min-height:0;overflow:hidden}
+  .panel-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
+  .panel-title h3{font-size:14px;font-weight:950;letter-spacing:-.02em}
+  .agenda-badges{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+  .agenda-badges span{border-radius:999px;background:var(--s2-bg);color:var(--s2);border:1px solid rgba(124,58,237,.16);padding:2px 6px;font-size:9px;font-weight:950}
+  .poc-flow{display:grid;grid-template-columns:130px 24px 156px 24px minmax(150px,1fr);align-items:center;gap:6px;height:calc(100% - 27px)}
+  .poc-model-flow{height:calc(100% - 27px);display:grid;grid-template-columns:minmax(88px,.9fr) 14px minmax(128px,1.15fr) 14px minmax(110px,1fr) 14px minmax(136px,1.18fr);align-items:center;gap:4px;max-width:100%;overflow:hidden}
+  .poc-model-node{border:1px solid var(--line);background:#f8fafc;border-radius:15px;padding:11px 7px;height:150px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 5px 14px rgba(15,23,42,.04);overflow:hidden}
+  .poc-model-node .ico{width:38px;height:38px;border-radius:13px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:21px;margin-bottom:7px;flex:0 0 auto}
+  .poc-model-node h4{font-size:11.5px;font-weight:950;line-height:1.18;color:#0f172a;word-break:keep-all}
+  .poc-model-node p{margin-top:5px;font-size:8.4px;line-height:1.24;color:#64748b;font-weight:850;word-break:keep-all}
+  .poc-model-node.customer{background:#eef6ff;border-color:#bfdbfe}
+  .poc-model-node.mainnet{background:radial-gradient(circle at 30% 20%,#e0f2fe,#60a5fa 44%,#1d4ed8);color:#fff;border-color:#93c5fd}
+  .poc-model-node.mainnet h4,.poc-model-node.mainnet p{color:#fff}.poc-model-node.mainnet p{opacity:.88}
+  .poc-model-node.system{background:#f0fdf4;border-color:#bbf7d0}
+  .poc-model-merchants{display:grid;grid-template-rows:1fr 1fr;gap:8px}
+  .poc-model-merchants .poc-model-node{height:69px;padding:6px 8px}
+  .poc-model-merchants .poc-model-node .ico{width:30px;height:30px;font-size:17px;margin-bottom:4px;border-radius:10px}
+  .poc-model-merchants .poc-model-node h4{font-size:10.6px}
+  .poc-model-merchants .poc-model-node p{font-size:8.2px;margin-top:3px}
+  .poc-model-arrow{font-size:16px;color:#94a3b8;text-align:center;font-weight:950}
+  .poc-model-split{display:grid;grid-template-rows:1fr 1fr;gap:28px;color:#94a3b8;font-size:16px;font-weight:950;text-align:center}
+  .wallet-mini{background:#0f172a;border-radius:24px;padding:7px;box-shadow:0 14px 28px rgba(15,23,42,.24);align-self:center}
+  .wallet-mini img{width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:18px;display:block;background:#fff}
+  .wallet-mini.logo{background:#fff;border:1px solid var(--line);padding:7px;display:flex;align-items:center;justify-content:center;min-height:138px}
+  .wallet-mini.logo img{width:100%;height:100%;max-width:138px;max-height:138px;aspect-ratio:1/1;object-fit:contain;border-radius:0;background:#fff}
+  .mainnet-node{width:156px;height:156px;border-radius:50%;background:radial-gradient(circle at 34% 24%,#e0f2fe 0 10%,#38bdf8 26%,#2563eb 58%,#0f3f9f 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#fff;font-weight:950;box-shadow:0 14px 28px rgba(37,99,235,.3),inset -18px -24px 34px rgba(15,23,42,.2);position:relative;overflow:hidden}
+  .mainnet-node::before{content:'';position:absolute;inset:14%;border:2px solid rgba(255,255,255,.5);border-radius:50%;transform:scaleX(.55)}
+  .mainnet-node::after{content:'';position:absolute;inset:12%;border-radius:50%;background:linear-gradient(transparent 31%,rgba(255,255,255,.34) 32% 34%,transparent 35% 64%,rgba(255,255,255,.28) 65% 67%,transparent 68%),linear-gradient(90deg,transparent 28%,rgba(255,255,255,.28) 29% 31%,transparent 32% 68%,rgba(255,255,255,.22) 69% 71%,transparent 72%);opacity:.8}
+  .mainnet-node .em{position:relative;z-index:1;font-size:24px;margin-bottom:5px}.mainnet-node .name{position:relative;z-index:1;font-size:10.3px;line-height:1.25;text-shadow:0 1px 6px rgba(15,23,42,.3)}
+  .flow-arrow{font-size:20px;color:#a5b4fc;text-align:center;font-weight:950}
+  .merchant-branches{display:grid;grid-template-columns:1fr;gap:7px}
+  .merchant-card{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:#f8fafc;border-radius:13px;padding:8px 8px;box-shadow:0 4px 12px rgba(15,23,42,.04);min-width:150px;position:relative}
+  .merchant-card .ico{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;background:#fff;border:1px solid var(--line);flex-shrink:0}
+  .merchant-card .name{font-size:11.5px;font-weight:950;white-space:nowrap}.merchant-card .meta{font-size:9.8px;color:var(--sub);font-weight:800;margin-top:2px;border:0;padding:0;line-height:1.28;white-space:nowrap}
+  .settlement-loop{position:absolute;left:1px;top:-24px;display:flex;align-items:center;gap:3px;color:#2563eb;font-weight:950;white-space:nowrap}
+  .settlement-loop span{font-size:17px;line-height:1}
+  .settlement-loop em{font-style:normal;font-size:9.5px;background:#eff6ff;border:1px solid rgba(37,99,235,.18);border-radius:999px;padding:2px 6px}
+  .poc-data-grid{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(3,1fr);gap:7px;height:calc(100% - 27px)}
+  .data-card{border:1px solid var(--line);background:#f8fafc;border-radius:13px;padding:8px 10px;min-height:0;display:flex;flex-direction:column;justify-content:center}
+  .data-card.wide{grid-column:1 / -1}.data-card .label{font-size:9.5px;color:var(--sub);font-weight:900}.data-card .value{margin-top:2px;font-size:18px;font-weight:950;letter-spacing:-.03em}.data-card .desc{margin-top:2px;font-size:9.5px;color:#475569;font-weight:800;line-height:1.25}
+  .data-card .merchant-mini{display:grid;gap:2px;margin-top:4px}
+  .data-card .merchant-mini span{display:flex;justify-content:space-between;gap:6px;font-size:8.7px;line-height:1.18;color:#475569;font-weight:850}
+  .data-card .merchant-mini em{font-style:normal;color:#0f172a;font-weight:950;white-space:nowrap}
+  .merchant-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:7px}
+  .merchant-stat{border:1px solid var(--line);border-radius:12px;padding:7px 6px;background:#fff;text-align:center}.merchant-stat b{display:block;font-size:12px}.merchant-stat span{display:block;margin-top:2px;font-size:9px;color:var(--sub);font-weight:800;line-height:1.18}
+  .mainnet-note{margin-top:7px;border:1px solid rgba(37,99,235,.18);background:linear-gradient(135deg,#eff6ff,#f5f3ff);border-radius:13px;padding:7px 10px;font-size:9.7px;color:#334155;line-height:1.32;font-weight:850}
+  .speed-payment-layout{width:100%;max-width:1230px;display:grid;grid-template-columns:minmax(700px,1.42fr) minmax(320px,.58fr);gap:14px;align-items:stretch}
+  .speed-flow-panel,.speed-data-panel{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px 16px;box-shadow:0 10px 24px rgba(15,23,42,.08);min-height:0}
+  .speed-flow-panel{display:flex;flex-direction:column;justify-content:center;gap:13px}
+  .speed-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .speed-title h3{font-size:15px;font-weight:950;letter-spacing:-.02em}
+  .speed-title span{border-radius:999px;background:var(--s1-bg);color:var(--s1);border:1px solid rgba(37,99,235,.14);padding:5px 10px;font-size:10.5px;font-weight:950}
+  .speed-timeline{display:grid;gap:8px}
+  .speed-flow-svg{width:100%;height:auto;display:block;border:1px solid #dbe7f5;background:linear-gradient(180deg,#fff,#f8fafc);border-radius:20px;box-shadow:0 8px 18px rgba(15,23,42,.05)}
+  .speed-bar{min-height:128px;border:1px solid #dbe7f5;background:linear-gradient(180deg,#fff,#f8fafc);border-radius:22px;padding:12px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;overflow:visible}
+  .speed-seg{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#fff;font-size:10px;font-weight:950;line-height:1.15;min-width:0;padding:9px 5px 8px;word-break:keep-all;border-radius:18px;box-shadow:0 10px 20px rgba(15,23,42,.12)}
+  .speed-seg:not(:last-child)::after{content:'›';position:absolute;right:-11px;top:50%;transform:translateY(-50%);width:20px;height:20px;border-radius:50%;background:#fff;color:#64748b;border:1px solid #dbe7f5;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:950;z-index:2;box-shadow:0 4px 10px rgba(15,23,42,.1)}
+  .speed-seg .speed-icon{width:42px;height:42px;border-radius:15px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:7px;box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+  .speed-seg b{display:block;font-size:10.2px;line-height:1.15;font-weight:950}
+  .speed-seg small{display:inline-flex;align-items:center;justify-content:center;margin-top:6px;min-height:18px;border-radius:999px;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.28);padding:2px 6px;font-size:8.6px;font-weight:950;line-height:1;white-space:nowrap}
+  .speed-seg.start{background:linear-gradient(135deg,#64748b,#334155)}
+  .speed-seg.front-req{background:linear-gradient(135deg,#38bdf8,#0284c7)}
+  .speed-seg.backend-req{background:linear-gradient(135deg,#2563eb,#1e40af)}
+  .speed-seg.chain{background:linear-gradient(135deg,#8b5cf6,#6d28d9)}
+  .speed-seg.backend-res{background:linear-gradient(135deg,#2563eb,#1e40af)}
+  .speed-seg.front-res{background:linear-gradient(135deg,#38bdf8,#0284c7)}
+  .speed-seg.done{background:linear-gradient(135deg,#64748b,#334155)}
+  .speed-total{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;border:1px solid rgba(37,99,235,.16);background:linear-gradient(135deg,#eff6ff,#f8fafc);border-radius:16px;padding:12px 14px}
+  .speed-total b{font-size:25px;font-weight:950;color:#1d4ed8;letter-spacing:-.04em}.speed-total span{font-size:11px;font-weight:900;color:#334155}.speed-total em{font-style:normal;border-radius:999px;background:#fff;color:#2563eb;border:1px solid #bfdbfe;padding:5px 9px;font-size:10px;font-weight:950}
+  .speed-kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .speed-kpi{border:1px solid var(--line);background:#fff;border-radius:13px;padding:9px;text-align:center}
+  .speed-kpi b{display:block;font-size:16px;font-weight:950;color:#0f172a}.speed-kpi span{display:block;margin-top:3px;font-size:9.5px;color:var(--sub);font-weight:820;line-height:1.25}
+  .speed-data-panel{display:flex;flex-direction:column;gap:9px}
+  .speed-role-card{display:grid;grid-template-columns:42px 1fr;gap:10px;align-items:start;border:1px solid #eef2f7;background:#f8fafc;border-radius:14px;padding:10px}
+  .speed-role-card .mark{width:42px;height:42px;border-radius:13px;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:21px}
+  .speed-role-card h3{font-size:13px;font-weight:950;margin-bottom:4px}.speed-role-card p{font-size:10.2px;line-height:1.38;color:#475569;font-weight:800;word-break:keep-all}
+  .visual.with-bottom-note{flex-direction:column;gap:12px}
+  .visual.with-bottom-note > .poc-report-layout,.visual.with-bottom-note > .speed-payment-layout,.visual.with-bottom-note > .settlement-layout,.visual.with-bottom-note > .settlement-visual-wrap,.visual.with-bottom-note > .admin-page-layout,.visual.with-bottom-note > .remit-layout{flex:0 1 68%;min-height:0}
+  .visual.with-bottom-note > .settlement-visual-wrap{flex-basis:66%}
+  .visual.with-bottom-note.settlement-page{gap:9px}
+  .visual.with-bottom-note.settlement-page > .settlement-visual-wrap{flex:0 1 78%;min-height:0}
+  .visual.with-bottom-note.settlement-page .settlement-visual-wrap{gap:8px}
+  .visual.with-bottom-note.settlement-page .settlement-visual-diagram{padding:7px 9px 4px;border-radius:16px}
+  .visual.with-bottom-note.settlement-page .settlement-visual-diagram svg{max-height:285px}
+  .visual.with-bottom-note.settlement-page .settlement-visual-card{min-height:94px;padding:10px 11px;grid-template-columns:26px 1fr;column-gap:8px}
+  .visual.with-bottom-note.settlement-page .settlement-visual-step{width:23px;height:23px;font-size:11px}
+  .visual.with-bottom-note.settlement-page .settlement-visual-card h4{font-size:12px;margin-bottom:4px}
+  .visual.with-bottom-note.settlement-page .settlement-visual-card p{font-size:9px;line-height:1.36}
+  .visual.with-bottom-note.settlement-page > .avalanche-note{flex:0 0 20%;min-height:86px;padding:10px 16px}
+  .visual.with-bottom-note.settlement-page .avalanche-note .avalanche-title{font-size:13px;gap:8px}
+  .visual.with-bottom-note.settlement-page .avalanche-note img{height:27px}
+  .avalanche-note{width:100%;max-width:1230px;flex:0 0 28%;min-height:104px;border:1px solid rgba(29,78,216,.16);background:linear-gradient(180deg,#fff,#f8fafc);border-radius:15px;padding:12px 18px;box-shadow:0 8px 18px rgba(15,23,42,.06);display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .avalanche-note .avalanche-title{display:flex;align-items:center;justify-content:center;gap:9px;font-size:13px;font-weight:950;color:#0f172a}
+  .avalanche-note img{height:28px;max-width:140px;object-fit:contain;display:block}
+  .avalanche-note p{margin-top:8px;text-align:center;font-size:11.3px;line-height:1.5;color:#475569;font-weight:820;word-break:keep-all;max-width:1040px}
+  .avalanche-note.empty{min-height:104px}
+  .stage-foot{border-top:1px solid var(--line);padding:7px 16px;display:flex;align-items:center;gap:10px;background:#fbfcfe;flex:0 0 auto}
+  .status-chip{font-size:11px;font-weight:900;padding:5px 10px;border-radius:999px;background:var(--s2-bg);color:var(--s2);white-space:nowrap}
+  .pbar{flex:1;height:7px;background:var(--line);border-radius:99px;overflow:hidden}
+  .pbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--s1),var(--s2),var(--s3));transition:width .5s ease}
+  .ctrl{display:flex;gap:8px}
+  .ctrl button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:6px 12px;font-size:12px;font-weight:900;cursor:pointer;color:var(--ink)}
+  .ctrl button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .start-btn{background:linear-gradient(135deg,#3b82f6,#7c3aed);color:#fff;border:none;border-radius:12px;padding:10px 28px;font-size:13px;font-weight:900;cursor:pointer;box-shadow:0 8px 22px rgba(124,58,237,.35)}
+  .done-check{width:92px;height:92px;border-radius:50%;background:radial-gradient(circle at 32% 28%,#34d399,var(--s4));color:#fff;font-size:46px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 0 0 10px rgba(5,150,105,.1),0 12px 30px rgba(5,150,105,.28)}
+  /* 통합 보고서 테마 */
+  :root{--ink:#111827;--sub:#526071;--line:#dbe3ef;--report-blue:#1d4ed8;--report-cyan:#0891b2;--report-violet:#6d28d9;--report-card:#fff}
+  body{background:linear-gradient(180deg,#f8fafc 0%,#eef4fb 100%);color:var(--ink)}
+  .bg-blob{display:none!important}
+  header .badge{background:#111827;border:1px solid rgba(255,255,255,.12);box-shadow:0 8px 20px rgba(15,23,42,.14)}
+  header h1 span{background:linear-gradient(90deg,var(--report-blue),var(--report-cyan));-webkit-background-clip:text;background-clip:text;color:transparent;animation:none}
+  .stepper-card,.stage{background:rgba(255,255,255,.96);border-color:var(--line);box-shadow:0 16px 42px rgba(15,23,42,.08);backdrop-filter:blur(8px)}
+  .region{border:1px solid rgba(15,23,42,.04)}
+  .step .dot{border-width:2px;box-shadow:0 4px 12px rgba(15,23,42,.08)}
+  .step.active .dot{animation:none;transform:scale(1.12)}
+  .step.active::after{display:none}
+  .step.done::before,.step.active::before{background:linear-gradient(90deg,var(--report-blue),var(--report-cyan))}
+  .scene-head .no{box-shadow:0 8px 18px rgba(15,23,42,.14)}
+  .scene-head h2{color:#111827}
+  .scene-desc{color:#526071;font-weight:760}
+  .big-card,.metric-card,.wallet-card,.settlement-diagram,.settlement-summary,.scope,.admin-map,.admin-desc,.remit-panel,.road{background:var(--report-card);border-color:var(--line);box-shadow:0 12px 28px rgba(15,23,42,.07)}
+  .stage-foot{background:#f8fafc;border-color:var(--line)}
+  .pbar{height:8px;background:#e5edf6}
+  .pbar i{background:linear-gradient(90deg,var(--report-blue),var(--report-cyan))}
+  .status-chip{border:1px solid rgba(29,78,216,.14);font-weight:900}
+  .ctrl button{border-radius:10px;border-color:var(--line);font-weight:850}
+  .ctrl button.primary,.start-btn{background:#111827;color:#fff;border-color:#111827;box-shadow:0 10px 22px rgba(15,23,42,.18)}
+  /* 로고 이미지 표시 확대 */
+  .big-card .logo-mark{width:132px;height:132px;object-fit:cover;object-position:center top;border-radius:18px;transform:none;transform-origin:center}
+  .wallet-mini.logo{padding:0;overflow:hidden}
+  .wallet-mini.logo img{max-width:168px;max-height:168px;transform:scale(1.34);transform-origin:center}
+  .settlement-node.wallet{overflow:hidden}
+  .settlement-node .wallet-logo{width:136px;height:136px;object-fit:cover;object-position:center top;border-radius:18px;transform:none;transform-origin:center}
+  .admin-source{overflow:hidden}
+  .admin-source{overflow:hidden}
+  .admin-source .source-logo{width:112px;height:92px;object-fit:cover;object-position:center top;border-radius:14px;transform:none;transform-origin:center}
+  .remit-node{overflow:hidden}
+  .remit-node img{width:82px;height:72px;object-fit:cover;object-position:center top;border-radius:12px;transform:none;transform-origin:center}
+  .remit-hub img{width:96px;height:84px}
+  .remit-hub img{width:126px;height:126px;transform:scale(1.28)}
+  .poc-flow .wallet-mini.logo{padding:5px;overflow:visible;min-height:124px}
+  .poc-flow .wallet-mini.logo img{max-width:126px;max-height:126px;transform:scale(1.08)}
+  /* 상단바 슬림 모드 */
+  .stepper-card{padding:4px 14px 5px;margin-bottom:4px;border-radius:12px}
+  .regions{display:flex;gap:6px;margin-bottom:3px}
+  .region{font-size:9px;padding:2px 0;border-radius:7px}
+  .stepper{align-items:flex-start}
+  .step{flex-direction:column;justify-content:flex-start;gap:0;min-width:0}
+  .step .dot{width:22px;height:22px;font-size:10px;border-width:2px;flex:0 0 auto}
+  .step .lbl{margin-top:2px;font-size:10px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .step .lbl br{display:none}
+  .step::before{top:11px;left:calc(-50% + 11px);width:calc(100% - 22px);height:2px}
+  img[src*="디지털월렛 메인.jpg"]{object-fit:cover;object-position:center top}
+  .poc-output-item img{object-fit:cover;object-position:center top}
+</style>
+</head>
+<body>
+<div class="bg-blob b1"></div><div class="bg-blob b2"></div><div class="bg-blob b3"></div>
+<div class="wrap">
+  <header>
+    <h1>NHN KCP <span>StableCoin PoC 리포트</span></h1>
+  </header>
+
+  <div class="stepper-card">
+    <div class="regions"><div class="region r0">검증 영역</div></div>
+      <div class="stepper" id="stepper">
+      <div class="step" data-c="0" data-i="0"><div class="dot">1</div><div class="lbl">스테이블코인<br>결제</div></div>
+      <div class="step" data-c="1" data-i="1"><div class="dot">2</div><div class="lbl">2초 이내<br>결제</div></div>
+      <div class="step" data-c="2" data-i="2"><div class="dot">3</div><div class="lbl">NHN KCP<br>디지털월렛</div></div>
+      <div class="step" data-c="3" data-i="3"><div class="dot">4</div><div class="lbl">실시간<br>정산</div></div>
+      <div class="step" data-c="4" data-i="4"><div class="dot">5</div><div class="lbl">3대 관리자<br>페이지</div></div>
+      <div class="step" data-c="5" data-i="5"><div class="dot">6</div><div class="lbl">글로벌<br>송금</div></div>
+    </div>
+  </div>
+  <div class="top-agendas" id="topAgendas"></div>
+
+  <div class="stage">
+    <div class="zone-strip" id="zoneStrip"></div>
+
+    <div class="scene show" id="scene-start">
+      <div class="scene-head"><h2>PoC에서 인프라 확장 모델로</h2></div>
+      <p class="scene-desc">검증된 결제 경험을 기반으로 온라인 결제, 해외송금, B2B 인프라 제공 모델까지 확장합니다.</p>
+      <div class="visual" style="flex-direction:column;gap:16px">
+        <div class="overview">
+          <div class="big-card poc-output-card">
+            <h3>NHN KCP 스테이블코인 결제 PoC 개발 산출물</h3>
+            <div class="poc-output-items">
+              <div class="poc-output-item"><img src="../이미지 보관폴더/디지털월렛 메인.jpg" alt="디지털월렛"><b>디지털월렛</b></div>
+              <div class="poc-output-item"><div class="ico">🌐</div><b>결제 특화<br>메인넷</b></div>
+              <div class="poc-output-item"><div class="ico">🖥</div><b>NHN KCP<br>시스템</b></div>
+            </div>
+            <div class="poc-output-summary">
+              <h4>스테이블코인 결제 PoC</h4>
+              <div><b>날짜</b><span>5월 18일 ~ 5월 29일</span></div>
+              <div><b>대상</b><span>약 750명</span></div>
+              <div><b>대상가맹점</b><span>온/오프라인 3곳</span></div>
+            </div>
+          </div>
+          <div class="arrow">➜</div>
+          <div class="big-card start-agenda-card">
+            <h3>7대 아젠다 도출</h3>
+            <div class="start-agenda-list">
+              <div class="start-agenda"><b>1</b><div><span>PAYCO 간편결제 앱 기반 디지털 월렛 구성 및 스테이블코인 결제 구현</span></div></div>
+              <div class="start-agenda"><b>2</b><div><span>온라인·오프라인 가맹점 동시 스테이블코인 결제 진행</span></div></div>
+              <div class="start-agenda"><b>3</b><div><span>결제 완료까지 단 2초 미만의 스테이블코인 결제 속도 구현</span></div></div>
+              <div class="start-agenda"><b>4</b><div><span>가맹점 및 블록체인 관리자 페이지 구축</span></div></div>
+              <div class="start-agenda"><b>5</b><div><span>1시간 단위 가맹점 자동 정산 프로세스 구축</span></div></div>
+              <div class="start-agenda"><b>6</b><div><span>아발란체 기반 결제 특화 메인넷 공동 개발 및 구축</span></div></div>
+              <div class="start-agenda"><b>7</b><div><span>스테이블코인 기반 해외 송금 및 글로벌 결제 인프라 구축</span></div></div>
+            </div>
+          </div>
+        </div>
+        <button class="start-btn" onclick="show(0)">PoC 리포트 보기</button>
+      </div>
+    </div>
+
+    <div class="scene" id="scene-0">
+      <div class="scene-head"><div class="no" style="background:var(--s0)">1</div><h2>스테이블코인 결제</h2></div>
+      <div class="visual with-bottom-note">
+        <div class="poc-report-layout">
+          <div class="poc-flow-panel">
+            <div class="panel-title"><h3>스테이블코인 결제 PoC 모델</h3></div>
+            <div class="poc-model-flow">
+              <div class="poc-model-node customer"><div class="ico">👥</div><h4>온·오프라인<br>이용 고객</h4><p>PAYCO 기반 결제 요청</p></div>
+              <div class="poc-model-split"><span>↔</span><span>↔</span></div>
+              <div class="poc-model-merchants">
+                <div class="poc-model-node"><div class="ico">🏪</div><h4>오프라인가맹점</h4><p>CafeA're · 구내식당</p></div>
+                <div class="poc-model-node"><div class="ico">🎁</div><h4>온라인가맹점</h4><p>PAYCO 포인트</p></div>
+              </div>
+              <div class="poc-model-arrow">➜</div>
+              <div class="poc-model-node mainnet"><div class="ico">🌐</div><h4>NHN KCP<br>결제특화 메인넷</h4><p>온체인 결제 확정</p></div>
+              <div class="poc-model-arrow">➜</div>
+              <div class="poc-model-node system"><div class="ico">🖥</div><h4>NHN KCP<br>시스템</h4><p>DB처리 · 관리자 3종<br>결제/정산 처리</p></div>
+            </div>
+          </div>
+          <div class="poc-data-panel">
+            <div class="panel-title"><h3>NHN KCP 스테이블코인 결제 PoC 결과</h3><div class="agenda-badges"><span>결제 성공률 100%</span></div></div>
+            <div class="poc-data-grid">
+              <div class="data-card"><div class="label">PoC 기간</div><div class="value">12일</div><div class="desc">2026-05-18 ~ 2026-05-29</div></div>
+              <div class="data-card"><div class="label">검증 가맹점</div><div class="value">3곳</div><div class="desc">오프라인 2곳, 온라인 1곳</div></div>
+              <div class="data-card"><div class="label">총 결제 건수</div><div class="value">2,392건</div><div class="merchant-mini"><span>카페아래 <em>981건</em></span><span>구내식당 <em>351건</em></span><span>페이코상품권 <em>1,060건</em></span></div></div>
+              <div class="data-card"><div class="label">평균 결제 시간</div><div class="value">1.80초</div><div class="merchant-mini"><span>카페아래 <em>1.88초</em></span><span>구내식당 <em>1.66초</em></span><span>페이코상품권 <em>1.87초</em></span></div></div>
+              <div class="data-card"><div class="label">정산 횟수</div><div class="value">418건</div><div class="desc">1시간 단위 자동 정산</div></div>
+              <div class="data-card"><div class="label">정산 성공률</div><div class="value">100%</div><div class="desc">기간 내 정산 전건 성공</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="avalanche-note">
+          <div class="avalanche-title"><span>With</span><img src="../이미지 보관폴더/아발란체로고.jpg" alt="Avalanche"></div>
+          <p>NHN KCP는 Avalanche 기반 결제 특화 자체 메인넷 Layer 1을 구축하여, 높은 TPS와 빠른 Finality를 활용해 결제를 2초 이내에 최종 확정하고 실시간 결제 및 정산 환경을 구현했습니다.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="scene" id="scene-1">
+      <div class="scene-head"><div class="no" style="background:var(--s1)">2</div><h2>2초 이내 결제</h2></div>
+      <p class="scene-desc">PAYCO 기반 월렛 결제 요청부터 KCP 메인넷 등록, 디지털월렛 반영까지 실사용 가능한 속도로 검증했습니다.</p>
+      <div class="visual with-bottom-note">
+        <div class="speed-payment-layout">
+          <div class="speed-flow-panel">
+            <div class="speed-title"><h3>2초 이내 결제 확정 플로우</h3><span>합계 1.796초 ≈ 1.80초</span></div>
+            <div class="speed-timeline">
+              <svg class="speed-flow-svg" viewBox="50 0 1420 280" role="img" aria-label="스테이블코인 2초 이내 결제 처리 흐름">
+                <defs>
+                  <marker id="speedArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+                    <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+                  </marker>
+                  <filter id="speedShadow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#0f172a" flood-opacity=".10"/>
+                  </filter>
+                </defs>
+                <line x1="96" y1="136" x2="1324" y2="136" stroke="#dbe7f5" stroke-width="5" stroke-linecap="round"/>
+                <g stroke="#94a3b8" stroke-width="3" marker-end="url(#speedArrow)">
+                  <line x1="170" y1="136" x2="242" y2="136"/><line x1="370" y1="136" x2="442" y2="136"/><line x1="570" y1="136" x2="642" y2="136"/>
+                  <line x1="770" y1="136" x2="842" y2="136"/><line x1="970" y1="136" x2="1042" y2="136"/><line x1="1170" y1="136" x2="1242" y2="136"/>
+                </g>
+                <g font-family="'Pretendard','Noto Sans KR','Malgun Gothic',sans-serif" text-anchor="middle">
+                  <g transform="translate(110 40)" filter="url(#speedShadow)">
+                    <rect width="120" height="190" rx="18" fill="#f8fafc" stroke="#cbd5e1"/><rect width="120" height="7" rx="3.5" fill="#475569"/>
+                    <g transform="translate(60 62)" stroke="#475569" stroke-width="5" fill="none" stroke-linecap="round"><circle cx="0" cy="-16" r="16"/><path d="M-30 30c0-25 60-25 60 0"/></g>
+                    <text x="60" y="125" font-size="22" font-weight="850" fill="#334155">결제시작</text><text x="60" y="158" font-size="19" font-weight="800" fill="#64748b">유저</text>
+                  </g>
+                  <g transform="translate(310 40)" filter="url(#speedShadow)">
+                    <rect width="120" height="190" rx="18" fill="#f0f9ff" stroke="#bae6fd"/><rect width="120" height="7" rx="3.5" fill="#0ea5e9"/>
+                    <g transform="translate(60 60)" stroke="#0284c7" stroke-width="5" fill="none" stroke-linecap="round"><rect x="-18" y="-32" width="36" height="62" rx="7"/><line x1="-7" y1="22" x2="7" y2="22"/></g>
+                    <text x="60" y="125" font-size="22" font-weight="850" fill="#0c4a6e">월렛 요청</text><text x="60" y="158" font-size="19" font-weight="800" fill="#0284c7">0.032초</text>
+                  </g>
+                  <g transform="translate(510 40)" filter="url(#speedShadow)">
+                    <rect width="120" height="190" rx="18" fill="#eff6ff" stroke="#bfdbfe"/><rect width="120" height="7" rx="3.5" fill="#2563eb"/>
+                    <g transform="translate(60 58)" stroke="#1d4ed8" stroke-width="5" fill="none" stroke-linecap="round"><rect x="-30" y="-30" width="60" height="23" rx="5"/><rect x="-30" y="5" width="60" height="23" rx="5"/><line x1="4" y1="-18" x2="22" y2="-18"/><line x1="4" y1="17" x2="22" y2="17"/></g>
+                    <text x="60" y="125" font-size="22" font-weight="850" fill="#1e3a8a">백엔드 요청</text><text x="60" y="158" font-size="18" font-weight="800" fill="#1d4ed8">0.6275초</text>
+                  </g>
+                  <g transform="translate(710 28)" filter="url(#speedShadow)">
+                    <rect width="120" height="214" rx="18" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="2.4"/><rect width="120" height="7" rx="3.5" fill="#7c3aed"/>
+                    <g transform="translate(60 58)" stroke="#6d28d9" stroke-width="5" fill="none" stroke-linejoin="round"><line x1="-18" y1="-10" x2="18" y2="-10"/><line x1="-23" y1="-4" x2="-10" y2="18"/><line x1="23" y1="-4" x2="10" y2="18"/><rect x="-34" y="-24" width="22" height="22" rx="5"/><rect x="12" y="-24" width="22" height="22" rx="5"/><rect x="-11" y="10" width="22" height="22" rx="5"/></g>
+                    <text x="60" y="127" font-size="21" font-weight="850" fill="#4c1d95">블록체인</text><text x="60" y="153" font-size="17" font-weight="800" fill="#6d28d9">온체인 처리</text><text x="60" y="183" font-size="19" font-weight="850" fill="#6d28d9">0.5초</text>
+                  </g>
+                  <g transform="translate(910 40)" filter="url(#speedShadow)">
+                    <rect width="120" height="190" rx="18" fill="#eff6ff" stroke="#bfdbfe"/><rect width="120" height="7" rx="3.5" fill="#2563eb"/>
+                    <g transform="translate(60 58)" stroke="#1d4ed8" stroke-width="5" fill="none" stroke-linecap="round"><rect x="-30" y="-30" width="60" height="23" rx="5"/><rect x="-30" y="5" width="60" height="23" rx="5"/><path d="M34 0h18m-7-8 9 8-9 8"/></g>
+                    <text x="60" y="125" font-size="22" font-weight="850" fill="#1e3a8a">백엔드 응답</text><text x="60" y="158" font-size="18" font-weight="800" fill="#1d4ed8">0.6295초</text>
+                  </g>
+                  <g transform="translate(1110 40)" filter="url(#speedShadow)">
+                    <rect width="120" height="190" rx="18" fill="#f0f9ff" stroke="#bae6fd"/><rect width="120" height="7" rx="3.5" fill="#0ea5e9"/>
+                    <g transform="translate(60 60)" stroke="#0284c7" stroke-width="5" fill="none" stroke-linecap="round"><rect x="-18" y="-32" width="36" height="62" rx="7"/><line x1="-7" y1="22" x2="7" y2="22"/><circle cx="24" cy="-28" r="8" fill="#0ea5e9" stroke="none"/></g>
+                    <text x="60" y="125" font-size="22" font-weight="850" fill="#0c4a6e">월렛 응답</text><text x="60" y="158" font-size="19" font-weight="800" fill="#0284c7">0.007초</text>
+                  </g>
+                  <g transform="translate(1310 40)" filter="url(#speedShadow)">
+                    <rect width="120" height="190" rx="18" fill="#f8fafc" stroke="#cbd5e1"/><rect width="120" height="7" rx="3.5" fill="#475569"/>
+                    <g transform="translate(56 61)" stroke="#475569" stroke-width="5" fill="none" stroke-linecap="round"><circle cx="-4" cy="-16" r="16"/><path d="M-34 30c0-25 60-25 60 0"/><circle cx="30" cy="-23" r="14" fill="#10b981" stroke="none"/><path d="M23 -23l5 5 10-13" stroke="#fff" stroke-width="4"/></g>
+                    <text x="60" y="121" font-size="19" font-weight="850" fill="#334155">결제처리</text><text x="60" y="145" font-size="19" font-weight="850" fill="#334155">완료</text><text x="60" y="175" font-size="19" font-weight="850" fill="#475569">1.796초</text>
+                  </g>
+                </g>
+              </svg>
+            </div>
+            <div class="speed-total">
+              <b>1.796초</b><span>월렛 요청부터 월렛 응답까지의 모듈별 처리 시간을 합산해 2초 이내 결제 확정을 검증했습니다.</span><em>2초 이내</em>
+            </div>
+          </div>
+          <div class="speed-data-panel">
+            <div class="speed-role-card"><div class="mark">📱</div><div><h3>프론트</h3><p>유저 결제 시작과 월렛 요청을 처리하고, 결제 완료 결과를 사용자 화면에 응답합니다.</p></div></div>
+            <div class="speed-role-card"><div class="mark">🖥</div><div><h3>백엔드 요청</h3><p>결제 요청 API 처리, 결제 상태 검증, 오프체인 결제 데이터를 처리합니다.</p></div></div>
+            <div class="speed-role-card"><div class="mark">⛓</div><div><h3>블록체인</h3><p>KCP 결제 특화 메인넷에서 결제 트랜잭션을 등록하고 최종 확정합니다.</p></div></div>
+            <div class="speed-role-card"><div class="mark">🖥</div><div><h3>백엔드 응답</h3><p>온체인 확정 결과를 수신해 결제 완료 상태를 정리하고 월렛/가맹점 응답을 생성합니다.</p></div></div>
+            <div class="speed-role-card"><div class="mark">📱</div><div><h3>프론트 응답</h3><p>유저 결제 요청 API 응답을 받아 결제 완료 화면과 월렛 내역을 즉시 갱신합니다.</p></div></div>
+          </div>
+        </div>
+        <div class="avalanche-note">
+          <div class="avalanche-title"><span>With</span><img src="../이미지 보관폴더/아발란체로고.jpg" alt="Avalanche"></div>
+          <p>빠른 Finality와 결제 특화 Layer 1 구조를 기반으로 결제 승인, 메인넷 등록, 월렛 반영까지 이어지는 PoC 결제 속도를 2초 이내로 검증했습니다.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="scene" id="scene-2">
+      <div class="scene-head"><div class="no" style="background:var(--s2)">3</div><h2>NHN KCP 디지털월렛</h2></div>
+      <p class="scene-desc">PAYCO 기반 디지털월렛에서 스테이블코인 결제, 입출금, 환전, 해외송금, 자산 조회 기능을 통합 제공합니다.</p>
+      <div class="visual">
+        <div class="wallet-showcase">
+          <div class="wallet-card">
+            <div class="wallet-shot"><img src="../이미지 보관폴더/월렛1.jpg" alt="NHN KCP 디지털월렛 내역 및 QR결제 화면"></div>
+            <div>
+              <h3>결제와 이용 내역</h3>
+              <div class="wallet-features">
+                <div class="wallet-feature"><b>🧾 내역</b><span>월렛의 스테이블코인 입/출금, 결제 내역 확인</span></div>
+                <div class="wallet-feature"><b>▦ QR결제</b><span>스테이블코인 QR결제 기능</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="wallet-card">
+            <div class="wallet-shot"><img src="../이미지 보관폴더/월렛2.jpg" alt="NHN KCP 디지털월렛 주요 기능 화면"></div>
+            <div>
+              <h3>월렛 주요 기능</h3>
+              <div class="wallet-feature-grid">
+                <div class="wallet-feature"><b>💰 충전</b><span>한국 KRW 원화 자산을 월렛으로 입금</span></div>
+                <div class="wallet-feature"><b>🔄 환전</b><span>월렛 내 코인을 다른 코인으로 SWAP(변환)</span></div>
+                <div class="wallet-feature"><b>🌏 해외송금</b><span>월렛 내 코인을 해외송금</span></div>
+                <div class="wallet-feature"><b>⬇ 입금</b><span>디지털월렛으로 코인 입금</span></div>
+                <div class="wallet-feature"><b>⬆ 출금</b><span>디지털월렛으로 코인 출금</span></div>
+                <div class="wallet-feature"><b>🏦 내 계좌로 출금</b><span>월렛 내 자산을 KRW 원화로 출금</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="wallet-card">
+            <div class="wallet-shot"><img src="../이미지 보관폴더/월렛3.jpg" alt="NHN KCP 디지털월렛 자산 현황 화면"></div>
+            <div>
+              <h3>자산 현황 조회</h3>
+              <div class="wallet-features">
+                <div class="wallet-feature"><b>📊 보유 자산</b><span>월렛에서 현재 보유 중인 스테이블코인과 자산 현황을 조회</span></div>
+                <div class="wallet-feature"><b>👛 통합 잔액</b><span>결제, 입출금, 송금에 사용할 수 있는 월렛 자산 상태 확인</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scene" id="scene-3">
+      <div class="scene-head"><div class="no" style="background:var(--s3)">4</div><h2>실시간 정산</h2></div>
+      <p class="scene-desc">결제 발생부터 1시간 배치, 온체인 정산 TX, 가맹점/운영자 대사까지 7개 과정을 4단계로 압축한 정산 흐름입니다.</p>
+      <div class="visual with-bottom-note settlement-page">
+        <div class="settlement-visual-wrap">
+          <div class="settlement-visual-diagram">
+            <svg viewBox="0 0 1160 350" xmlns="http://www.w3.org/2000/svg" font-family="'Pretendard','Noto Sans KR','Malgun Gothic',sans-serif" role="img" aria-label="실시간 정산 프로세스">
+              <defs>
+                <marker id="sv-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8c959f"/></marker>
+                <marker id="sv-arrow-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1a7f37"/></marker>
+              </defs>
+              <rect x="958" y="120" width="190" height="216" rx="18" fill="#7c3aed08" stroke="#7c3aed55" stroke-width="1.5" stroke-dasharray="7 5"/>
+              <g transform="translate(983,105)"><rect x="-10" y="-1" width="20" height="15" rx="4" fill="#7c3aed"/><path d="M-5,-1 V-7 a5,5 0 0 1 10,0 V-1" fill="none" stroke="#7c3aed" stroke-width="2.6"/><circle cx="0" cy="6" r="2.2" fill="#fff"/></g>
+              <text x="1016" y="110" font-size="10.8" font-weight="800" fill="#7c3aed">가맹점 지갑주소 암호화</text>
+              <text x="1016" y="125" font-size="9.8" fill="#8b7db8">Explorer 직접 노출 방지</text>
+              <g>
+                <rect x="20" y="150" width="210" height="150" rx="14" fill="#fff" stroke="#d0d7de" stroke-width="1.5"/><rect x="20" y="150" width="210" height="5" rx="2.5" fill="#0969da"/>
+                <g transform="translate(125,205)"><rect x="-17" y="-24" width="34" height="50" rx="6" fill="none" stroke="#0969da" stroke-width="3"/><rect x="-10" y="-12" width="20" height="13" rx="2.5" fill="#0969da22" stroke="#0969da" stroke-width="2"/><line x1="-6" y1="17" x2="6" y2="17" stroke="#0969da" stroke-width="3" stroke-linecap="round"/></g>
+                <text x="125" y="262" text-anchor="middle" font-size="15.5" font-weight="700" fill="#1f2328">NHN KCP 디지털월렛</text><text x="125" y="283" text-anchor="middle" font-size="12" fill="#57606a">사용자 결제 요청</text>
+              </g>
+              <path d="M238 225 L348 225" stroke="#8c959f" stroke-width="2.5" marker-end="url(#sv-arrow)"/><text x="293" y="212" text-anchor="middle" font-size="11" fill="#8c959f">결제 발생</text>
+              <g>
+                <rect x="360" y="140" width="250" height="170" rx="14" fill="#eff6ff" stroke="#0969da" stroke-width="2"/><rect x="360" y="140" width="250" height="5" rx="2.5" fill="#0969da"/>
+                <g transform="translate(485,192)" stroke="#0969da" stroke-width="3" fill="none"><line x1="-13" y1="-8" x2="13" y2="-8"/><line x1="-19" y1="-2" x2="-11" y2="13"/><line x1="19" y1="-2" x2="11" y2="13"/><rect x="-30" y="-17" width="18" height="18" rx="4" fill="#eff6ff"/><rect x="12" y="-17" width="18" height="18" rx="4" fill="#eff6ff"/><rect x="-9" y="8" width="18" height="18" rx="4" fill="#eff6ff"/></g>
+                <text x="485" y="252" text-anchor="middle" font-size="16" font-weight="700" fill="#0969da">KCP 결제 특화 메인넷</text><text x="485" y="273" text-anchor="middle" font-size="12" fill="#57606a">정산 실행 · 온체인 기록 · TX 확정</text>
+                <g font-size="10.5" font-weight="600"><rect x="374" y="288" width="66" height="21" rx="10.5" fill="#0969da14" stroke="#0969da44"/><text x="407" y="302" text-anchor="middle" fill="#0969da">온체인 정산</text><rect x="448" y="288" width="56" height="21" rx="10.5" fill="#0969da14" stroke="#0969da44"/><text x="476" y="302" text-anchor="middle" fill="#0969da">TX 기록</text><rect x="512" y="288" width="84" height="21" rx="10.5" fill="#0969da14" stroke="#0969da44"/><text x="554" y="302" text-anchor="middle" fill="#0969da">Finality 1~2초</text></g>
+              </g>
+              <path d="M618 225 L662 225" stroke="#8c959f" stroke-width="2.5" marker-end="url(#sv-arrow)"/><text x="640" y="212" text-anchor="middle" font-size="11" fill="#8c959f">확정 건 집계</text>
+              <g>
+                <rect x="670" y="140" width="230" height="170" rx="14" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2"/><rect x="670" y="140" width="230" height="5" rx="2.5" fill="#7c3aed"/>
+                <g transform="translate(785,197)"><circle cx="0" cy="0" r="21" fill="none" stroke="#7c3aed" stroke-width="3"/><path d="M0,-11 L0,0 L9,6" stroke="#7c3aed" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="16" y="-24" width="17" height="21" rx="3" fill="#f5f3ff" stroke="#7c3aed" stroke-width="2.5"/><line x1="20" y1="-18" x2="29" y2="-18" stroke="#7c3aed" stroke-width="1.8"/><line x1="20" y1="-13" x2="29" y2="-13" stroke="#7c3aed" stroke-width="1.8"/></g>
+                <text x="785" y="250" text-anchor="middle" font-size="15.5" font-weight="700" fill="#4c1d95">정산 스마트컨트랙트</text><text x="785" y="270" text-anchor="middle" font-size="11.5" fill="#57606a">1시간 자동 배치 실행</text><text x="785" y="287" text-anchor="middle" font-size="11.5" fill="#57606a">수수료 반영 · 순정산액 확정</text>
+              </g>
+              <path d="M902 205 C940 205, 948 185, 976 185" stroke="#1a7f37" stroke-width="2.5" fill="none" marker-end="url(#sv-arrow-green)"/><path d="M902 250 C940 250, 948 286, 976 286" stroke="#1a7f37" stroke-width="2.5" fill="none" marker-end="url(#sv-arrow-green)"/>
+              <rect x="906" y="212" width="82" height="26" rx="13" fill="#1a7f37"/><text x="947" y="229" text-anchor="middle" font-size="10.5" font-weight="700" fill="#fff">컨트랙트 분배</text>
+              <g>
+                <rect x="985" y="148" width="150" height="74" rx="12" fill="#f0fdf4" stroke="#1a7f37" stroke-width="1.5"/><g transform="translate(1012,185)"><rect x="-12" y="-10" width="24" height="20" rx="4" fill="none" stroke="#1a7f37" stroke-width="2.5"/><circle cx="7" cy="0" r="2.5" fill="#1a7f37"/></g><text x="1084" y="180" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1a7f37">가맹점 지갑</text><text x="1084" y="199" text-anchor="middle" font-size="11" fill="#57606a">순정산액 입금</text>
+                <rect x="985" y="246" width="150" height="74" rx="12" fill="#f0fdf4" stroke="#1a7f37" stroke-width="1.5"/><g transform="translate(1012,283)"><rect x="-12" y="-10" width="24" height="20" rx="4" fill="none" stroke="#1a7f37" stroke-width="2.5"/><text x="7" y="5" text-anchor="middle" font-size="12" font-weight="800" fill="#1a7f37">%</text></g><text x="1084" y="279" text-anchor="middle" font-size="13.5" font-weight="700" fill="#1a7f37">수수료 지갑</text><text x="1084" y="298" text-anchor="middle" font-size="11" fill="#57606a">수수료 동시 분배</text>
+              </g>
+            </svg>
+          </div>
+          <div class="settlement-visual-cards">
+            <div class="settlement-visual-card"><span class="settlement-visual-step">1</span><h4>정산 대상 집계</h4><p>온체인 확정된 결제 건을 <strong>1시간 단위</strong>로 자동 집계합니다. 영업시간 제약 없이 24/7 처리됩니다.</p></div>
+            <div class="settlement-visual-card"><span class="settlement-visual-step">2</span><h4>순정산액 계산</h4><p>수수료를 반영해 가맹점별 순정산액을 확정합니다. <strong>토큰 이전 = 가치 이전</strong> 구조입니다.</p></div>
+            <div class="settlement-visual-card"><span class="settlement-visual-step">3</span><h4>스마트컨트랙트 정산</h4><p><strong>정산 스마트컨트랙트</strong>가 1시간 배치를 실행하고 정산액과 수수료를 단일 TX로 분배합니다.</p></div>
+            <div class="settlement-visual-card"><span class="settlement-visual-step">4</span><h4>가맹점 주소 보호</h4><p>정산 TX 처리 시 가맹점 지갑주소가 Explorer에 직접 노출되지 않도록 암호화/우회 처리합니다.</p></div>
+          </div>
+        </div>
+        <div class="avalanche-note empty">
+          <div class="avalanche-title"><span>With</span><img src="../이미지 보관폴더/아발란체로고.jpg" alt="Avalanche"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scene" id="scene-4">
+      <div class="scene-head"><div class="no" style="background:var(--s4)">5</div><h2>3대 관리자페이지</h2></div>
+      <p class="scene-desc">NHN KCP 디지털월렛과 결제 특화 메인넷을 기준으로 내부 관리자, 파트너 관리자, 메인넷 관리자가 역할별 운영 화면을 제공합니다.</p>
+      <div class="visual with-bottom-note">
+        <div class="admin-page-layout">
+          <div class="admin-map">
+            <div class="admin-source-row">
+              <div class="admin-source"><img class="source-logo" src="../이미지 보관폴더/디지털월렛 메인.jpg" alt="NHN KCP Wallet"><b>NHN KCP 디지털월렛</b><span>결제·정산 요청 생성</span></div>
+              <div class="admin-flow-arrow">→</div>
+              <div class="admin-source mainnet"><div class="ico">🌐</div><b>KCP 결제 특화 메인넷</b><span>온체인 처리·운영 데이터 생성</span></div>
+            </div>
+            <div class="admin-branch-title">운영 데이터가 3대 관리자 페이지로 분기</div>
+            <div class="admin-branch-grid">
+              <div class="admin-branch"><img src="../이미지 보관폴더/내부관리자.png" alt="월렛 내부 관리자"><b>월렛(내부) 관리자</b><span>전체 결제·정산 운영</span></div>
+              <div class="admin-branch"><img src="../이미지 보관폴더/파트너관리자.png" alt="파트너 관리자"><b>파트너(가맹점) 관리자</b><span>가맹점별 정산 확인</span></div>
+              <div class="admin-branch"><img src="../이미지 보관폴더/메인넷관리자.png" alt="메인넷 관리자"><b>메인넷 관리자</b><span>온체인 상태 관제</span></div>
+            </div>
+          </div>
+          <div class="admin-desc">
+            <div class="admin-desc-card"><div class="mark">🗂️</div><div><h3>월렛(내부) 관리자</h3><p>NHN KCP 운영자가 전체 결제, 정산, 지급 이력을 통합 관리하는 내부 운영 화면입니다.</p><ul><li>• 전체 가맹점 결제·정산 현황 조회</li><li>• 온체인 지급이력, 정산 배치, 실패/재처리 대상 관리</li></ul></div></div>
+            <div class="admin-desc-card"><div class="mark">🏪</div><div><h3>파트너(가맹점) 관리자</h3><p>가맹점이 블록체인을 잘 몰라도 디지털월렛 내 온·오프체인 결제와 정산 흐름을 쉽게 이해하고 관리할 수 있는 파트너 전용 화면입니다.</p><ul><li>• 가맹점별 지급이력 및 정산 이력 조회</li><li>• 정산 금액, 입금 상태, 처리 결과 확인</li></ul></div></div>
+            <div class="admin-desc-card"><div class="mark">📡</div><div><h3>메인넷 관리자</h3><p>결제 특화 메인넷의 블록, 트랜잭션, 운영 상태를 모니터링하는 관제 화면입니다.</p><ul><li>• 메인넷 대시보드와 익스플로러 기반 온체인 확인</li><li>• 정산 TX 처리 상태와 네트워크 운영 지표 관제</li></ul></div></div>
+          </div>
+        </div>
+        <div class="avalanche-note empty">
+          <div class="avalanche-title"><span>With</span><img src="../이미지 보관폴더/아발란체로고.jpg" alt="Avalanche"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scene" id="scene-5">
+      <div class="scene-head"><div class="no" style="background:var(--s5)">6</div><h2>글로벌송금</h2></div>
+      <p class="scene-desc">디지털월렛 간 송금과 외부 지갑 입출금 검증 결과를 기반으로 온램프, 해외전송, 오프램프 확장 개발을 진행합니다.</p>
+      <div class="visual with-bottom-note">
+        <div class="remit-layout">
+          <div class="remit-panel">
+            <h3>PoC검증</h3>
+            <div class="remit-proof-grid">
+              <div class="remit-proof-map">
+                <div class="remit-node remit-hub"><img src="../이미지 보관폴더/디지털월렛 메인.jpg" alt="NHN KCP Wallet"><b>NHN KCP 디지털월렛</b><span>송금·입출금 요청</span></div>
+                <div class="remit-route-arrows">
+                  <div class="pair"><span>→</span><span>←</span></div>
+                  <div class="pair"><span>→</span><span>←</span></div>
+                </div>
+                <div class="remit-target-stack">
+                  <div class="remit-node"><img src="../이미지 보관폴더/디지털월렛 메인.jpg" alt="NHN KCP Wallet"><b>NHN KCP 디지털월렛</b><span>월렛 간 코인 송수신</span></div>
+                  <div class="remit-node"><div class="metamask-mark">🦊</div><b>외부 지갑</b><span>MetaMask · Core 등</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="remit-proof-note">NHN KCP 디지털월렛 간 송금 및 외부 지갑과의 입출금 검증완료. 입금 638건, 출금 126건</div>
+          </div>
+          <div class="remit-panel">
+            <h3>추가개발 진행사항</h3>
+            <p class="lead">상용 해외송금 흐름은 원화 자산 진입, 온체인 해외전송, 현지 통화 출금의 3단계로 확장합니다.</p>
+            <div class="remit-dev-flow">
+              <div class="remit-dev-step"><div class="ico">₩</div><b>온램프</b><p>국내 원화 자산을 디지털월렛으로 입금하고 스테이블코인 송금 흐름에 진입시키는 단계입니다.</p></div>
+              <div class="remit-dev-arrow">→</div>
+              <div class="remit-dev-step"><div class="ico">🌐</div><b>해외전송</b><p>스테이블코인이 블록체인 네트워크를 통해 국가 간 이동하며, 은행 중개 없이 온체인으로 직접 전송됩니다.</p></div>
+              <div class="remit-dev-arrow">→</div>
+              <div class="remit-dev-step"><div class="ico">$</div><b>오프램프</b><p>수령자가 출금을 요청하면 현지 오프램프를 통해 달러 등 현지 통화로 전환 후 계좌 입금됩니다.</p></div>
+            </div>
+            <div class="remit-dev-tags"><span>금융기관 연계 협의</span><span>24/7 온체인 전송</span><span>현지 출금 인프라</span></div>
+          </div>
+        </div>
+        <div class="avalanche-note empty">
+          <div class="avalanche-title"><span>With</span><img src="../이미지 보관폴더/아발란체로고.jpg" alt="Avalanche"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scene" id="scene-done">
+      <div class="visual" style="flex-direction:column">
+        <div class="done-check">✓</div>
+        <h2 style="font-size:22px;font-weight:950;margin-bottom:8px">PoC 리포트 완료</h2>
+        <p style="color:var(--sub);font-size:13px;text-align:center;line-height:1.55;font-weight:750">검증된 결과를 바탕으로 이제 결제 확장 모델, 해외송금 플로우, B2B 인프라 제공 모델을 순차적으로 확인합니다.</p>
+      </div>
+    </div>
+
+    <div class="stage-foot">
+      <span class="status-chip" id="statusChip">대기 중 · PoC 리포트 보기를 눌러주세요</span>
+      <div class="pbar"><i id="pfill"></i></div>
+      <div class="ctrl"><button onclick="prev()">이전</button><button onclick="next()">다음</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOTAL = 6, FIRST_DELAY = 10000, STEP_DELAY = 22000;
+const agendaCatalog = {
+  1:'PAYCO 간편결제 앱 기반 디지털 월렛 구성 및 스테이블코인 결제 구현',
+  2:'온라인·오프라인 가맹점 동시 스테이블코인 결제 진행',
+  3:'결제 완료까지 단 2초 미만의 스테이블코인 결제 속도 구현',
+  4:'가맹점 및 블록체인 관리자 페이지 구축',
+  5:'1시간 단위 가맹점 자동 정산 프로세스 구축',
+  6:'아발란체 기반 결제 특화 메인넷 공동 개발 및 구축',
+  7:'스테이블코인 기반 해외 송금 및 글로벌 결제 인프라 구축'
+};
+const pageAgendas = {
+  '-1':[1,2,3,4,5,6,7],
+  0:[1,2,3,4,5,6],
+  1:[3],
+  2:[1],
+  3:[5],
+  4:[4],
+  5:[7],
+  done:[1,2,3,4,5,6,7]
+};
+const stepMeta = [
+  {c:'--s0', bg:'--s0-bg', name:'1/6 · 스테이블코인 결제'},
+  {c:'--s1', bg:'--s1-bg', name:'2/6 · 2초 이내 결제'},
+  {c:'--s2', bg:'--s2-bg', name:'3/6 · NHN KCP 디지털월렛'},
+  {c:'--s3', bg:'--s3-bg', name:'4/6 · 실시간 정산'},
+  {c:'--s4', bg:'--s4-bg', name:'5/6 · 3대 관리자페이지'},
+  {c:'--s5', bg:'--s5-bg', name:'6/6 · 글로벌송금'}
+];
+let cur=-1, playing=false, timer=null;
+const steps=document.querySelectorAll('.step');
+steps.forEach(s=>s.addEventListener('click',()=>{ pause(); show(+s.dataset.i); }));
+function show(i){
+  cur=i;
+  document.querySelectorAll('.scene').forEach(s=>s.classList.remove('show'));
+  if(i<0){ document.getElementById('scene-start').classList.add('show'); setChip('대기 중 · PoC 리포트 보기를 눌러주세요','var(--s2-bg)','var(--s2)'); setStrip('var(--line)'); setHeaderAgendas([]); }
+  else if(i>=TOTAL){ document.getElementById('scene-done').classList.add('show'); setChip('PoC 리포트 완료','var(--s4-bg)','var(--s4)'); setStrip('var(--s4)'); setHeaderAgendas(pageAgendas.done); }
+  else { document.getElementById('scene-'+i).classList.add('show'); const m=stepMeta[i]; setChip(m.name,`var(${m.bg})`,`var(${m.c})`); setStrip(`var(${m.c})`); setHeaderAgendas(pageAgendas[i]); }
+  steps.forEach((s,idx)=>{ s.classList.toggle('done',idx<i||i>=TOTAL); s.classList.toggle('active',idx===i&&i<TOTAL); });
+  document.getElementById('pfill').style.width=Math.max(0,Math.min(1,(i+1)/TOTAL))*100+'%';
+}
+function setHeaderAgendas(nums){
+  const el=document.getElementById('topAgendas');
+  el.classList.toggle('show',nums.length>0);
+  el.classList.toggle('single',nums.length===1);
+  el.innerHTML=nums.map(n=>`<div class="top-agenda"><b>${n}</b><span>${agendaCatalog[n]}</span></div>`).join('');
+}
+function setChip(t,bg,c){ const el=document.getElementById('statusChip'); el.textContent=t; el.style.background=bg; el.style.color=c; }
+function setStrip(c){ document.getElementById('zoneStrip').style.background=c; }
+function currentDelay(){ return cur===0 ? FIRST_DELAY : STEP_DELAY; }
+function scheduleNext(){ clearTimeout(timer); timer=setTimeout(()=>{ if(cur>=TOTAL-1){ show(TOTAL); pause(); } else { next(); if(playing) scheduleNext(); } }, currentDelay()); }
+function start(){ show(0); }
+function next(){ if(cur<TOTAL) show(cur+1); if(cur>=TOTAL) pause(); }
+function prev(){ if(cur>0) show(cur-1); pause(); }
+function play(){ pause(); playing=true; scheduleNext(); }
+function pause(){ playing=false; clearTimeout(timer); }
+function reset(){ pause(); show(-1); }
+setHeaderAgendas([]);
+
+</script>
+</body>
+</html>

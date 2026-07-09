@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NHN KCP 온.오프라인 결제 모델</title>
+<style>
+  :root{
+    --s0:#64748b; --s0-bg:#f1f5f9;
+    --s1:#2563eb; --s1-bg:#eff6ff;
+    --s2:#7c3aed; --s2-bg:#f5f3ff;
+    --s3:#0891b2; --s3-bg:#ecfeff;
+    --ink:#0f172a; --sub:#64748b; --line:#e2e8f0;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif}
+  html,body{height:100%}
+  body{background:#f6f8fc;height:100vh;color:var(--ink);overflow:hidden}
+
+  .bg-blob{position:fixed;border-radius:50%;filter:blur(90px);opacity:.32;z-index:0;animation:drift 16s ease-in-out infinite alternate}
+  .bg-blob.b1{width:520px;height:520px;background:#93c5fd;top:-160px;left:-140px}
+  .bg-blob.b2{width:460px;height:460px;background:#c4b5fd;top:32%;right:-160px;animation-delay:-5s}
+  .bg-blob.b3{width:420px;height:420px;background:#67e8f9;bottom:-160px;left:32%;animation-delay:-10s}
+  @keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(50px,40px) scale(1.12)}}
+
+  .wrap{max-width:1240px;height:100vh;margin:0 auto;padding:10px 18px 12px;position:relative;z-index:1;display:flex;flex-direction:column;min-height:0}
+
+  /* ── Header ── */
+  header{text-align:center;margin-bottom:8px;flex:0 0 auto}
+  header .badge{display:inline-block;background:var(--ink);color:#fff;font-size:11px;font-weight:700;
+    letter-spacing:.12em;padding:4px 13px;border-radius:999px;margin-bottom:5px;position:relative;overflow:hidden}
+  header .badge::after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;
+    background:linear-gradient(105deg,transparent,rgba(255,255,255,.55),transparent);animation:sheen 3s infinite}
+  @keyframes sheen{0%{left:-60%}60%,100%{left:130%}}
+  header h1{font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.15}
+  header h1 span{background:linear-gradient(90deg,var(--s1),var(--s2),var(--s3),var(--s1));background-size:300% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;animation:hue 6s linear infinite}
+  @keyframes hue{to{background-position:300% 0}}
+  header p{margin-top:4px;color:var(--sub);font-size:12px}
+
+  /* ── Stepper ── */
+  .stepper-card{background:rgba(255,255,255,.85);backdrop-filter:blur(10px);border:1px solid var(--line);
+    border-radius:16px;padding:9px 18px 10px;box-shadow:0 4px 24px rgba(15,23,42,.06);margin-bottom:8px;flex:0 0 auto}
+  .regions{display:flex;gap:8px;margin-bottom:7px}
+  .region{text-align:center;font-size:10.5px;font-weight:800;padding:4px 0;border-radius:8px}
+  .region.r0{flex:1;background:var(--s0-bg);color:var(--s0)}
+  .region.r1{flex:1;background:var(--s1-bg);color:var(--s1)}
+  .region.r2{flex:2;background:linear-gradient(90deg,var(--s2-bg),var(--s3-bg));color:var(--s2)}
+  .stepper{display:flex;align-items:flex-start}
+  .step{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;cursor:pointer}
+  .step .dot{width:31px;height:31px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:12px;background:#fff;border:2.5px solid var(--line);color:#94a3b8;
+    transition:all .35s;position:relative;z-index:2}
+  .step .lbl{margin-top:4px;font-size:10px;font-weight:700;color:#94a3b8;text-align:center;line-height:1.2;transition:color .3s}
+  .step::before{content:'';position:absolute;top:15.5px;left:calc(-50% + 15.5px);width:calc(100% - 31px);height:3px;
+    background:var(--line);z-index:1;transition:background .4s}
+  .step:first-child::before{display:none}
+  .step.done .dot{border-color:transparent;color:#fff}
+  .step.done .lbl{color:var(--ink)}
+  .step.active .dot{transform:scale(1.22);color:#fff;border-color:transparent}
+  .step.active .lbl{color:var(--ink)}
+  .step[data-c="0"].done .dot,.step[data-c="0"].active .dot{background:var(--s0)}
+  .step[data-c="1"].done .dot,.step[data-c="1"].active .dot{background:var(--s1)}
+  .step[data-c="2"].done .dot,.step[data-c="2"].active .dot{background:var(--s2)}
+  .step[data-c="3"].done .dot,.step[data-c="3"].active .dot{background:var(--s3)}
+  .step.done::before,.step.active::before{background:linear-gradient(90deg,var(--s1),var(--s2),var(--s3))}
+  .step .dot .chk{display:none}
+  .step.done:not(.active) .dot .num{display:none}
+  .step.done:not(.active) .dot .chk{display:block;animation:pop .35s ease}
+  .step.active .dot{animation:pulse 1.5s infinite}
+  .step.active::after{content:'';position:absolute;top:15.5px;left:50%;width:50px;height:50px;margin:-25px;
+    border-radius:50%;border:2px solid rgba(124,58,237,.35);animation:ripple 1.5s ease-out infinite;z-index:0}
+  @keyframes ripple{from{transform:scale(.5);opacity:1}to{transform:scale(1.25);opacity:0}}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 5px rgba(124,58,237,.16)}50%{box-shadow:0 0 0 11px rgba(124,58,237,.03)}}
+  @keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+
+  /* ── Stage ── */
+  .stage{background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border:1px solid var(--line);
+    border-radius:20px;box-shadow:0 12px 40px rgba(15,23,42,.08);overflow:hidden;position:relative;flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  .zone-strip{height:6px;background:var(--line);transition:background .5s;position:relative;overflow:hidden}
+  .zone-strip::after{content:'';position:absolute;inset:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);
+    transform:translateX(-100%);animation:stripflow 2.4s linear infinite}
+  @keyframes stripflow{to{transform:translateX(100%)}}
+  .scene{display:none;padding:16px 34px 14px;animation:sceneIn .6s cubic-bezier(.22,1,.36,1);min-height:0;overflow:hidden}
+  .scene.show{display:flex;flex-direction:column;flex:1 1 auto}
+  @keyframes sceneIn{from{opacity:0;transform:translateY(22px) scale(.985)}to{opacity:1;transform:none}}
+  .scene-head{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:3px;flex:0 0 auto}
+  .scene-head .no{min-width:34px;height:34px;padding:0 12px;border-radius:999px;color:#fff;display:flex;align-items:center;
+    justify-content:center;font-weight:800;font-size:14px;box-shadow:0 4px 12px rgba(15,23,42,.2)}
+  .scene-head h2{font-size:19px;font-weight:800;letter-spacing:-.02em}
+  .scene-desc{text-align:center;color:var(--sub);font-size:12.5px;margin-bottom:10px;line-height:1.42;flex:0 0 auto}
+  .visual{display:flex;align-items:center;justify-content:center;position:relative;flex:1 1 auto;min-height:0}
+
+  /* 서브스테이지 */
+  .sub{display:none;animation:sceneIn .5s ease}
+  .sub.on{display:flex;flex-direction:column;align-items:center;gap:14px}
+  .sub-flow{display:flex;gap:8px;margin-bottom:4px}
+  .sub-flow b{font-size:10.5px;font-weight:800;padding:4px 11px;border-radius:999px;background:#f1f5f9;color:#94a3b8;transition:all .3s}
+  .sub-flow b.cur{background:var(--ink);color:#fff}
+
+  /* ── 인트로 ── */
+  .toc{display:flex;gap:18px}
+  .toc-card{width:280px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px 22px;text-align:center;
+    box-shadow:0 8px 24px rgba(15,23,42,.08);animation:cardUp .55s ease backwards;transition:transform .25s,box-shadow .25s;cursor:pointer}
+  .toc-card:hover{transform:translateY(-7px);box-shadow:0 18px 38px rgba(37,99,235,.16)}
+  .toc-card:nth-child(1){animation-delay:.15s}.toc-card:nth-child(2){animation-delay:.32s}
+  @keyframes cardUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+  .toc-card .em{width:60px;height:60px;border-radius:18px;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:30px}
+  .toc-card .num{font-size:11px;font-weight:900;letter-spacing:.1em;color:var(--sub)}
+  .toc-card h3{font-size:19px;font-weight:800;margin-top:4px}
+  .toc-card .ds{font-size:12.5px;color:var(--sub);margin-top:8px;line-height:1.55}
+  .intro-layout{display:grid;grid-template-columns:minmax(560px,1fr) minmax(360px,430px);gap:18px;width:100%;max-width:1060px;align-items:stretch}
+  .intro-agenda,.intro-models{min-width:0}
+  .intro-agenda{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 10px 26px rgba(15,23,42,.08)}
+  .intro-agenda h3{font-size:16px;font-weight:900;margin-bottom:10px;text-align:left}
+  .intro-agenda-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .intro-agenda-item{display:grid;grid-template-columns:26px 1fr;gap:8px;align-items:start;border:1px solid #e8eef7;background:#f8fafc;border-radius:12px;padding:9px}
+  .intro-agenda-item b{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:950}
+  .intro-agenda-item span{font-size:10.6px;line-height:1.34;color:#334155;font-weight:850;word-break:keep-all}
+  .intro-models{display:grid;gap:12px}
+  .intro-model-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px 18px;box-shadow:0 10px 26px rgba(15,23,42,.08);cursor:pointer;display:grid;grid-template-columns:58px 1fr;gap:13px;align-items:center;transition:transform .25s,box-shadow .25s}
+  .intro-model-card:hover{transform:translateY(-5px);box-shadow:0 18px 36px rgba(37,99,235,.16)}
+  .intro-model-card .em{width:58px;height:58px;border-radius:17px;display:flex;align-items:center;justify-content:center;font-size:29px}
+  .intro-model-card .num{font-size:10px;font-weight:900;letter-spacing:.08em;color:var(--sub)}
+  .intro-model-card h3{font-size:17px;font-weight:900;margin-top:3px}
+  .intro-model-card .ds{font-size:11.5px;color:var(--sub);margin-top:5px;line-height:1.45;font-weight:750;word-break:keep-all}
+
+  /* ── 공통: 폰/카드 목업 ── */
+  .phone{width:min(210px,22vh);background:#0f172a;border-radius:26px;padding:8px;box-shadow:0 18px 44px rgba(15,23,42,.28)}
+  .phone .screen{background:#fff;border-radius:22px;overflow:hidden;position:relative}
+  .img-fit{display:block;width:100%;height:auto}
+  .hidden{display:none!important}
+
+  /* ── 쇼핑몰 ── */
+  .mall{width:min(400px,38vw);background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(15,23,42,.1)}
+  .mall-top{background:var(--ink);color:#fff;padding:12px 18px;font-weight:800;font-size:14px;display:flex;align-items:center;gap:8px}
+  .mall-top .url{margin-left:auto;font-size:10px;font-weight:600;background:rgba(255,255,255,.14);padding:3px 10px;border-radius:99px;color:#cbd5e1}
+  .mall-bd{padding:18px;display:flex;gap:16px;align-items:center}
+  .prod-img{width:150px;height:150px;border-radius:14px;background:#f8fafc;border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+  .prod-img img{width:100%;height:100%;object-fit:cover}
+  .prod-img .fb{font-size:52px}
+  .prod-info{flex:1}
+  .prod-info .tag{font-size:10px;font-weight:800;color:var(--s1);background:var(--s1-bg);padding:3px 9px;border-radius:99px}
+  .prod-info h4{font-size:17px;font-weight:800;margin-top:8px}
+  .prod-info .pr{font-size:20px;font-weight:900;margin-top:6px}
+  .prod-info .pr small{font-size:11px;color:var(--sub);font-weight:600}
+  .buy-btn{margin-top:12px;width:100%;background:linear-gradient(135deg,#3b82f6,#7c3aed);color:#fff;border:none;border-radius:12px;
+    padding:12px;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 6px 16px rgba(124,58,237,.3);
+    transition:transform .15s;position:relative;overflow:hidden}
+  .buy-btn::after{content:'';position:absolute;top:0;left:-70%;width:45%;height:100%;transform:skewX(-20deg);
+    background:linear-gradient(105deg,transparent,rgba(255,255,255,.5),transparent);animation:sheen 2.4s infinite}
+  .buy-btn:hover{transform:translateY(-2px)}
+
+  /* ── 결제창 ── */
+  .paywin{width:min(410px,38vw);background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 14px 38px rgba(15,23,42,.16);position:relative}
+  .paywin.has-shot{width:min(560px,58vw)}
+  .paywin-top{background:linear-gradient(135deg,#b91c1c,#dc2626);color:#fff;padding:11px 16px;font-weight:800;font-size:13px;display:flex;align-items:center;gap:8px}
+  .paywin-top .x{margin-left:auto;opacity:.8}
+  .paywin img{display:block;width:100%}
+  .paywin.has-shot img{max-height:calc(100vh - 285px);object-fit:contain;background:#fff;cursor:pointer}
+  .paywin.has-shot .order,.paywin.has-shot .paymethods{display:none}
+
+  .stablecoin-select-overlay{display:none;position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:3;
+    align-items:center;gap:9px;background:rgba(255,255,255,.96);border:2px solid var(--s2);color:var(--s2);
+    border-radius:14px;padding:10px 16px;font-size:13px;font-weight:900;box-shadow:0 12px 30px rgba(124,58,237,.22);cursor:pointer;
+    animation:glowBtn 1.1s ease-in-out infinite;white-space:nowrap}
+  .stablecoin-select-overlay .new{background:#dc2626;color:#fff;font-size:9px;font-weight:900;padding:2px 7px;border-radius:999px}
+  .paywin.has-shot .stablecoin-select-overlay{display:flex}
+  .paywin .order{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;font-size:12.5px;font-weight:700}
+  .paywin .order .amt{color:#dc2626;font-weight:900}
+  .paymethods{padding:14px 16px 16px}
+  .paymethods .tt{font-size:11.5px;font-weight:800;color:var(--sub);margin-bottom:9px}
+  .pm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .pm{border:1.5px solid var(--line);border-radius:11px;padding:11px 6px;text-align:center;font-size:11.5px;font-weight:800;
+    background:#fff;cursor:default;color:#475569}
+  .pm .ic{font-size:19px;display:block;margin-bottom:4px}
+  .pm.stable{cursor:pointer;border-color:var(--s2);color:var(--s2);background:var(--s2-bg);position:relative;
+    animation:glowBtn 1.1s ease-in-out infinite;transition:transform .15s}
+  .pm.stable:hover{transform:translateY(-3px)}
+  .pm.stable .new{position:absolute;top:-8px;right:-6px;background:#dc2626;color:#fff;font-size:8.5px;font-weight:900;
+    padding:2px 7px;border-radius:99px;animation:pulse 1.5s infinite}
+  @keyframes glowBtn{0%,100%{box-shadow:0 0 0 0 rgba(124,58,237,.45)}50%{box-shadow:0 0 0 9px rgba(124,58,237,0)}}
+
+
+  /* PG 결제창 목업 */
+  .pg-mock{width:min(730px,74vw);background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;
+    box-shadow:0 14px 38px rgba(15,23,42,.16)}
+  .pg-head{height:28px;background:#1680b7;color:#fff;display:flex;align-items:center;padding:0 16px;font-size:12px;font-weight:900}
+  .pg-head span{margin-left:auto;font-size:11px;font-weight:800;opacity:.9}
+  .pg-body{padding:10px 14px 11px;background:#fff}
+  .pg-brand{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;font-size:12px;font-weight:900;color:#334155}
+  .pg-order{display:grid;grid-template-columns:1.1fr .9fr .95fr;border:1px solid var(--line);background:#f8fafc;margin-bottom:7px}
+  .pg-order>div{padding:7px 10px;border-right:1px solid var(--line);font-size:10.5px;font-weight:800;color:#475569}
+  .pg-order>div:last-child{border-right:none;text-align:right;background:#fff}
+  .pg-order b{display:block;color:var(--ink);font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pg-order .amount{font-size:20px;color:#dc2626;letter-spacing:-.02em}
+  .pg-agree{display:flex;gap:10px;align-items:center;border:1px solid var(--line);padding:7px 9px;margin-bottom:8px;font-size:10px;font-weight:800;color:#475569;background:#fff}
+  .pg-main{display:grid;grid-template-columns:1fr 198px;gap:10px;align-items:stretch}
+  .pg-card-grid{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-right:none;border-bottom:none;background:#fff}
+  .pg-cell{height:30px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:center;
+    font-size:10px;font-weight:850;color:#475569;gap:4px;background:#fff}
+  .pg-cell.selected{outline:2px solid #38bdf8;outline-offset:-2px;color:#0369a1;background:#f0f9ff}
+  .pg-installment{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:10px;color:#475569;font-weight:800}
+  .pg-select{border:1px solid #cbd5e1;border-radius:3px;padding:6px 26px 6px 9px;background:#fff;color:#334155}
+  .stable-banner{position:relative;border:2px solid var(--s2);border-radius:16px;background:linear-gradient(180deg,#fff,#f5f3ff);
+    padding:10px 12px 10px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;overflow:hidden;cursor:pointer;
+    box-shadow:0 14px 30px rgba(124,58,237,.16);animation:glowBtn 1.2s ease-in-out infinite}
+  .stable-banner::after{content:'';position:absolute;top:-30%;right:-24%;width:130px;height:130px;border-radius:50%;background:rgba(124,58,237,.10)}
+  .stable-banner .new{position:relative;z-index:1;background:#dc2626;color:#fff;border-radius:999px;padding:3px 8px;font-size:9px;font-weight:900;margin-bottom:8px}
+  .stable-banner .icon{position:relative;z-index:1;width:34px;height:34px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#0891b2);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 8px 18px rgba(124,58,237,.25);margin-bottom:6px}
+  .stable-banner h4{position:relative;z-index:1;font-size:14px;font-weight:950;color:var(--ink);line-height:1.2}
+  .stable-banner p{position:relative;z-index:1;font-size:10px;color:var(--sub);font-weight:800;line-height:1.35;margin-top:5px}
+  .stable-banner button{position:relative;z-index:1;width:100%;border:none;border-radius:10px;background:var(--s2);color:#fff;font-size:11px;font-weight:900;
+    padding:7px;margin-top:8px;cursor:pointer}
+  .pg-foot{display:flex;justify-content:flex-end;gap:8px;padding:8px 14px;background:#f8fafc;border-top:1px solid var(--line)}
+  .pg-foot button{border:none;border-radius:6px;padding:8px 32px;font-size:12px;font-weight:900;color:#fff;background:#94a3b8}
+  .pg-foot button.next{background:#1680b7}
+
+  /* ── QR / 결제완료 ── */
+  .qr-card{width:300px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;text-align:center;
+    box-shadow:0 14px 38px rgba(15,23,42,.14)}
+  .qr-card h4{font-size:15px;font-weight:800}
+  .qr-card .ds{font-size:11.5px;color:var(--sub);margin-top:4px}
+  .qr-box{width:140px;height:140px;margin:10px auto 6px;border:2px solid var(--ink);border-radius:12px;padding:8px;position:relative;overflow:hidden}
+  .qr-box svg{width:100%;height:100%}
+  .qr-box .laser{position:absolute;left:6px;right:6px;height:3px;border-radius:99px;
+    background:linear-gradient(90deg,transparent,#22c55e,transparent);box-shadow:0 0 12px #22c55e;animation:laser 1.8s ease-in-out infinite}
+  @keyframes laser{0%,100%{top:10px}50%{top:calc(100% - 14px)}}
+  .qr-timer{font-size:11px;font-weight:800;color:var(--s2)}
+  .scan-hint{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;font-size:12px;font-weight:700;color:var(--sub)}
+  .scan-hint .ph{font-size:22px;animation:phShake 1.4s ease-in-out infinite}
+  @keyframes phShake{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+
+  .done-card{width:300px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px 18px;text-align:center;
+    box-shadow:0 14px 38px rgba(5,150,105,.16)}
+  .big-check{width:78px;height:78px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 32% 28%,#34d399,#059669);color:#fff;font-size:38px;
+    animation:pop .5s cubic-bezier(.34,1.56,.64,1);box-shadow:0 0 0 9px rgba(5,150,105,.1),0 10px 24px rgba(5,150,105,.3)}
+  .done-card h4{font-size:17px;font-weight:800}
+  .done-card .amt{font-size:22px;font-weight:900;color:var(--s1);margin-top:6px}
+  .done-card .ds{font-size:11.5px;color:var(--sub);margin-top:8px;line-height:1.5}
+  .rcpt{margin-top:14px;background:#f8fafc;border:1px solid var(--line);border-radius:11px;padding:10px 13px;text-align:left}
+  .rcpt div{display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:#475569;padding:3px 0}
+
+  /* ── 월렛 ── */
+  .wallet-fb{padding:14px}
+  .wallet-fb .chip{border-radius:12px;padding:13px;color:#fff;background:linear-gradient(135deg,#1d4ed8,#7c3aed);
+    position:relative;overflow:hidden;box-shadow:0 5px 14px rgba(37,99,235,.35)}
+  .wallet-fb .chip::after{content:'';position:absolute;top:0;left:-70%;width:45%;height:100%;transform:skewX(-20deg);
+    background:linear-gradient(105deg,transparent,rgba(255,255,255,.5),transparent);animation:sheen 2.6s infinite}
+  .wallet-fb .chip .t{font-size:10px;font-weight:700;opacity:.85;letter-spacing:.06em}
+  .wallet-fb .chip .v{font-size:16px;font-weight:800;margin-top:3px}
+  .wallet-fb .menu{display:flex;gap:6px;margin-top:10px}
+  .wallet-fb .menu i{flex:1;font-style:normal;background:#f8fafc;border:1px solid var(--line);border-radius:9px;
+    text-align:center;padding:9px 0;font-size:16px}
+  .wallet-btn{display:block;width:calc(100% - 24px);margin:0 12px 12px;background:linear-gradient(135deg,#3b82f6,#7c3aed);
+    color:#fff;border:none;border-radius:12px;padding:12px;font-size:13.5px;font-weight:800;cursor:pointer;
+    box-shadow:0 6px 16px rgba(124,58,237,.32);position:relative;overflow:hidden;transition:transform .15s;
+    animation:glowBtn 1.3s ease-in-out infinite}
+  .wallet-btn:hover{transform:translateY(-2px)}
+  .wallet-img-wrap{position:relative}
+  .wallet-img-wrap .overlay-btn{position:absolute;left:10px;right:10px;bottom:10px;background:linear-gradient(135deg,#3b82f6,#7c3aed);
+    color:#fff;border:none;border-radius:12px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;
+    box-shadow:0 6px 16px rgba(124,58,237,.42);animation:glowBtn 1.3s ease-in-out infinite;transition:transform .15s}
+  .wallet-img-wrap .overlay-btn:hover{transform:translateY(-2px)}
+
+  /* 카메라 스캔 */
+  .cam{width:240px;background:#0f172a;border-radius:18px;padding:14px;box-shadow:0 16px 40px rgba(15,23,42,.35);text-align:center}
+  .cam .tt{color:#e2e8f0;font-size:12.5px;font-weight:800;margin-bottom:12px}
+  .cam-frame{position:relative;width:160px;height:160px;margin:0 auto;border-radius:14px;background:#1e293b;
+    display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .cam-frame .corner{position:absolute;width:26px;height:26px;border:3.5px solid #22c55e}
+  .cam-frame .c1{top:8px;left:8px;border-right:none;border-bottom:none;border-radius:6px 0 0 0}
+  .cam-frame .c2{top:8px;right:8px;border-left:none;border-bottom:none;border-radius:0 6px 0 0}
+  .cam-frame .c3{bottom:8px;left:8px;border-right:none;border-top:none;border-radius:0 0 0 6px}
+  .cam-frame .c4{bottom:8px;right:8px;border-left:none;border-top:none;border-radius:0 0 6px 0}
+  .cam-frame .qr-mini{width:110px;height:110px;background:#fff;border-radius:8px;padding:7px;animation:qrFloat 2s ease-in-out infinite}
+  @keyframes qrFloat{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+  .cam-frame .laser{position:absolute;left:14px;right:14px;height:3px;border-radius:99px;
+    background:linear-gradient(90deg,transparent,#22c55e,transparent);box-shadow:0 0 14px #22c55e;animation:laser 1.6s ease-in-out infinite}
+  .cam .st{margin-top:12px;font-size:11.5px;font-weight:800;color:#34d399}
+  .cam .st::after{content:'...';animation:dots 1.2s steps(4) infinite}
+  @keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
+
+  /* 바코드 */
+  .barcode-card{width:280px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;text-align:center;
+    box-shadow:0 14px 38px rgba(15,23,42,.14);position:relative;overflow:hidden}
+  .barcode-card h4{font-size:14.5px;font-weight:800}
+  .barcode-card .ds{font-size:11px;color:var(--sub);margin-top:3px}
+  .bc{margin:10px auto 5px;width:218px;height:74px;border-radius:8px;
+    background:repeating-linear-gradient(90deg,#0f172a 0 3px,#fff 3px 5px,#0f172a 5px 7px,#fff 7px 12px,#0f172a 12px 14px,#fff 14px 17px,#0f172a 17px 22px,#fff 22px 24px,#0f172a 24px 26px,#fff 26px 31px)}
+  .bc-num{font-size:12px;font-weight:800;letter-spacing:.22em;color:#334155}
+  .bc-scan{position:absolute;left:0;right:0;height:56px;top:-60px;pointer-events:none;
+    background:linear-gradient(180deg,transparent,rgba(239,68,68,.28),transparent)}
+  .bc-scan::after{content:'';position:absolute;left:8%;right:8%;top:50%;height:2.5px;background:#ef4444;box-shadow:0 0 14px #ef4444}
+  .scanning .bc-scan{animation:bcscan 1.6s ease-in-out infinite}
+  @keyframes bcscan{0%,100%{top:52px}50%{top:150px}}
+  .barcode-phone-shot{position:relative;width:min(290px,27vh);aspect-ratio:852/1846;background:#0f172a;border-radius:28px;
+    padding:8px;box-shadow:0 18px 44px rgba(15,23,42,.28);overflow:hidden}
+  .barcode-phone-shot img{width:100%;height:100%;object-fit:contain;border-radius:21px;background:#fff;display:block}
+  .barcode-scan-zone{position:absolute;left:16%;right:16%;top:21.5%;height:14.2%;border-radius:10px;overflow:hidden;pointer-events:none;
+    border:2px solid rgba(239,68,68,.28);box-shadow:inset 0 0 20px rgba(239,68,68,.08)}
+  .barcode-scan-zone::before{content:'';position:absolute;left:0;right:0;height:46%;top:-50%;
+    background:linear-gradient(180deg,transparent,rgba(239,68,68,.30),transparent);animation:phonebcscan 1.7s ease-in-out infinite}
+  .barcode-scan-zone::after{content:'';position:absolute;left:6%;right:6%;top:50%;height:2.5px;background:#ef4444;
+    box-shadow:0 0 14px #ef4444;animation:phonebcbar 1.7s ease-in-out infinite}
+  @keyframes phonebcscan{0%,100%{top:-48%}50%{top:104%}}
+  @keyframes phonebcbar{0%,100%{top:6%}50%{top:92%}}
+  .pos{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .pos .dev{font-size:44px;animation:phShake 1.6s ease-in-out infinite}
+  .pos .nm{font-size:11.5px;font-weight:800;color:var(--sub)}
+
+  .img-shot{max-width:min(280px,28vh);max-height:44vh;object-fit:contain;border-radius:14px;border:1px solid var(--line);box-shadow:0 14px 38px rgba(15,23,42,.14);display:block}
+
+  .metric{background:#f8fafc;border:1px solid var(--line);border-radius:14px;padding:12px 20px;text-align:center;
+    transition:transform .25s,box-shadow .25s}
+  .metric:hover{transform:translateY(-4px);box-shadow:0 8px 20px rgba(15,23,42,.09)}
+  .metric .v{font-size:18px;font-weight:800}
+  .metric .k{font-size:11.5px;color:var(--sub);font-weight:600;margin-top:2px}
+  .metrics{display:flex;gap:10px;justify-content:center;margin-top:10px;flex-wrap:wrap;flex:0 0 auto}
+
+  /* 진행바/컨트롤 */
+  .stage-foot{border-top:1px solid var(--line);padding:10px 20px;display:flex;align-items:center;gap:12px;background:#fbfcfe;flex:0 0 auto}
+  .pbar{flex:1;height:9px;background:var(--line);border-radius:99px;overflow:hidden;position:relative}
+  .pbar i{display:block;height:100%;width:0;border-radius:99px;position:relative;
+    background:linear-gradient(90deg,var(--s1),var(--s2),var(--s3));transition:width .5s ease}
+  .pbar i::after{content:'';position:absolute;inset:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);
+    transform:translateX(-100%);animation:stripflow 1.8s linear infinite}
+  .ctrl{display:flex;gap:8px}
+  .ctrl button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 14px;font-size:13px;
+    font-weight:700;cursor:pointer;color:var(--ink);transition:all .15s}
+  .ctrl button:hover{background:#f1f5f9;transform:translateY(-1px)}
+  .ctrl button.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .status-chip{font-size:12px;font-weight:800;padding:6px 12px;border-radius:999px;background:var(--s2-bg);color:var(--s2);white-space:nowrap}
+
+  .start-btn{background:linear-gradient(135deg,#3b82f6,#7c3aed);color:#fff;border:none;border-radius:13px;
+    padding:12px 32px;font-size:14px;font-weight:800;cursor:pointer;position:relative;overflow:hidden;
+    box-shadow:0 8px 22px rgba(124,58,237,.35);transition:transform .15s}
+  .start-btn::after{content:'';position:absolute;top:0;left:-70%;width:45%;height:100%;transform:skewX(-20deg);
+    background:linear-gradient(105deg,transparent,rgba(255,255,255,.5),transparent);animation:sheen 2.4s infinite}
+  .start-btn:hover{transform:translateY(-2px)}
+  .start-btn:active{transform:scale(.97)}
+
+  .done-check{width:100px;height:100px;border-radius:50%;background:radial-gradient(circle at 32% 28%,#22d3ee,var(--s3));
+    color:#fff;font-size:50px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;
+    animation:pop .5s cubic-bezier(.34,1.56,.64,1);box-shadow:0 0 0 10px rgba(8,145,178,.12),0 12px 30px rgba(8,145,178,.3)}
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
+
+  @media(max-width:860px){
+    .step .lbl{display:none}
+    .scene{padding:24px 16px}
+    .toc{flex-direction:column}
+    .mall-bd{flex-direction:column}
+    .mall,.paywin{width:100%;max-width:440px}
+  }
+  /* 통합 보고서 테마 */
+  :root{--ink:#111827;--sub:#526071;--line:#dbe3ef;--report-blue:#1d4ed8;--report-cyan:#0891b2;--report-violet:#6d28d9;--report-card:#fff}
+  body{background:linear-gradient(180deg,#f8fafc 0%,#eef4fb 100%);color:var(--ink)}
+  .bg-blob{display:none!important}
+  header .badge{background:#111827;border:1px solid rgba(255,255,255,.12);box-shadow:0 8px 20px rgba(15,23,42,.14)}
+  header h1 span{background:linear-gradient(90deg,var(--report-blue),var(--report-cyan));-webkit-background-clip:text;background-clip:text;color:transparent;animation:none}
+  .stepper-card,.stage{background:rgba(255,255,255,.96);border-color:var(--line);box-shadow:0 16px 42px rgba(15,23,42,.08);backdrop-filter:blur(8px)}
+  .region{border:1px solid rgba(15,23,42,.04)}
+  .step .dot{border-width:2px;box-shadow:0 4px 12px rgba(15,23,42,.08)}
+  .step.active .dot{animation:none;transform:scale(1.12)}
+  .step.active::after{display:none}
+  .step.done::before,.step.active::before{background:linear-gradient(90deg,var(--report-blue),var(--report-cyan))}
+  .scene-head .no{box-shadow:0 8px 18px rgba(15,23,42,.14)}
+  .scene-head h2{color:#111827}
+  .scene-desc{color:#526071;font-weight:760}
+  .toc-card,.intro-agenda,.intro-model-card,.mall,.paywin,.phone,.result-card,.barcode-card,.offline-hub,.flow-card,.wallet-fb,.barcode-phone-shot,.metric{background:var(--report-card);border-color:var(--line);box-shadow:0 12px 28px rgba(15,23,42,.07)}
+  .stage-foot{background:#f8fafc;border-color:var(--line)}
+  .pbar{height:8px;background:#e5edf6}
+  .pbar i{background:linear-gradient(90deg,var(--report-blue),var(--report-cyan))}
+  .status-chip{border:1px solid rgba(29,78,216,.14);font-weight:900}
+  .ctrl button{border-radius:10px;border-color:var(--line);font-weight:850}
+  .ctrl button.primary,.start-btn{background:#111827;color:#fff;border-color:#111827;box-shadow:0 10px 22px rgba(15,23,42,.18)}
+  /* 상단바 슬림 모드 */
+  .stepper-card{padding:5px 14px 6px;margin-bottom:5px;border-radius:12px}
+  .regions{display:flex;gap:6px;margin-bottom:3px}
+  .region{font-size:9px;padding:2px 0;border-radius:7px}
+  .stepper{align-items:flex-start}
+  .step{flex-direction:column;justify-content:flex-start;gap:0;min-width:0}
+  .step .dot{width:23px;height:23px;font-size:10px;border-width:2px;flex:0 0 auto}
+  .step .lbl{margin-top:2px;font-size:10px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .step .lbl br{display:none}
+  .step::before{top:11.5px;left:calc(-50% + 11.5px);width:calc(100% - 23px);height:2px}
+</style>
+</head>
+<body>
+<div class="bg-blob b1"></div><div class="bg-blob b2"></div><div class="bg-blob b3"></div>
+<canvas id="confetti"></canvas>
+<div class="wrap">
+
+  <header>
+    <h1>NHN KCP <span>온.오프라인 결제 모델</span></h1>
+    <p>온라인 PG 연동부터 오프라인 QR · 바코드 결제까지, 스테이블코인 결제의 확장</p>
+  </header>
+
+  <!-- 상단 스테퍼 -->
+  <div class="stepper-card">
+    <div class="regions">
+      <div class="region r0">📖 목차</div>
+      <div class="region r1">🛒 온라인 확장 모델</div>
+      <div class="region r2">🏪 오프라인 확장 모델</div>
+    </div>
+    <div class="stepper" id="stepper">
+      <div class="step" data-c="0" data-i="0"><div class="dot"><span class="num">i</span><span class="chk">✓</span></div><div class="lbl">확장 모델<br>소개</div></div>
+      <div class="step" data-c="1" data-i="1"><div class="dot"><span class="num">1</span><span class="chk">✓</span></div><div class="lbl">온라인<br>PG 연동</div></div>
+      <div class="step" data-c="2" data-i="2"><div class="dot"><span class="num">2</span><span class="chk">✓</span></div><div class="lbl">오프라인<br>QR 결제</div></div>
+      <div class="step" data-c="3" data-i="3"><div class="dot"><span class="num">3</span><span class="chk">✓</span></div><div class="lbl">오프라인<br>바코드 결제</div></div>
+    </div>
+  </div>
+
+  <!-- 중앙 스테이지 -->
+  <div class="stage">
+    <div class="zone-strip" id="zoneStrip"></div>
+
+    <!-- 시작 화면 -->
+    <div class="scene show" id="scene-start">
+      <div class="scene-head"><h2>🧭 NHN KCP 온.오프라인 결제 모델</h2></div>
+      <p class="scene-desc">PoC로 검증한 스테이블코인 결제를 <b>온라인과 오프라인 결제 현장</b>으로 확장합니다.</p>
+      <div class="visual" style="flex-direction:column;gap:14px">
+        <div class="intro-layout">
+          <div class="intro-agenda">
+            <h3>6대 검증 아젠다</h3>
+            <div class="intro-agenda-list">
+              <div class="intro-agenda-item"><b>1</b><span>PAYCO 간편결제 앱 기반 디지털 월렛 구성 및 스테이블코인 결제 구현</span></div>
+              <div class="intro-agenda-item"><b>2</b><span>온라인·오프라인 가맹점 동시 스테이블코인 결제 진행</span></div>
+              <div class="intro-agenda-item"><b>3</b><span>결제 완료까지 단 2초 미만의 스테이블코인 결제 속도 구현</span></div>
+              <div class="intro-agenda-item"><b>4</b><span>가맹점 및 블록체인 관리자 페이지 구축</span></div>
+              <div class="intro-agenda-item"><b>5</b><span>1시간 단위 가맹점 자동 정산 프로세스 구축</span></div>
+              <div class="intro-agenda-item"><b>6</b><span>아발란체 기반 결제 특화 메인넷 공동 개발 및 구축</span></div>
+            </div>
+          </div>
+          <div class="intro-models">
+            <div class="intro-model-card" onclick="pause();show(1)">
+              <div class="em" style="background:var(--s1-bg)">🛒</div>
+              <div>
+                <div class="num">CHAPTER 01</div>
+                <h3>온라인 확장 모델</h3>
+                <div class="ds">NHN KCP PG 연동<br>결제창 내 스테이블코인 결제수단 추가</div>
+              </div>
+            </div>
+            <div class="intro-model-card" onclick="pause();show(2)">
+              <div class="em" style="background:var(--s2-bg)">🏪</div>
+              <div>
+                <div class="num">CHAPTER 02</div>
+                <h3>오프라인 확장 모델</h3>
+                <div class="ds">디지털월렛 기반<br>QR 결제 · 바코드 결제</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="start-btn" onclick="show(0)">▶ 확장 모델 보기</button>
+      </div>
+    </div>
+
+    <!-- 1. 온라인 PG 연동 -->
+    <div class="scene" id="scene-1">
+      <div class="scene-head"><div class="no" style="background:var(--s1)">1</div><h2>온라인 확장 · NHN KCP PG 연동</h2></div>
+      <p class="scene-desc">기존 PG 결제창에 <b>스테이블코인 결제수단</b>을 추가 — 온라인 쇼핑몰에서 QR 한 번으로 결제됩니다.</p>
+      <div class="visual">
+
+        <!-- 1-a 쇼핑몰 -->
+        <div class="sub on" id="s1-a">
+          <div class="sub-flow"><b class="cur">① 쇼핑몰</b><b>② 결제창</b><b>③ QR 결제</b><b>④ 완료</b></div>
+          <div class="mall">
+            <div class="mall-top">🛍️ KCP MALL <span class="url">https://mall.kcp.co.kr</span></div>
+            <div class="mall-bd">
+              <div class="prod-img">
+                <img id="imgKeycap" alt="키캡 시안 2종" class="hidden">
+                <span class="fb" id="fbKeycap">⌨️</span>
+              </div>
+              <div class="prod-info">
+                <span class="tag">BEST</span>
+                <h4>커스텀 키캡 세트 2종</h4>
+                <div class="pr">32,000원 <small>무료배송</small></div>
+                <button class="buy-btn" onclick="goSub(1,1)">🛒 키캡 구매하기</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 1-b 결제창 -->
+        <div class="sub" id="s1-b">
+          <div class="sub-flow"><b>① 쇼핑몰</b><b class="cur">② 결제창</b><b>③ QR 결제</b><b>④ 완료</b></div>
+          <div class="pg-mock">
+            <div class="pg-head">NHN KCP - 결제의 중심! <span>웹접근성안내</span></div>
+            <div class="pg-body">
+              <div class="pg-brand"><span>snusportsmall</span><span>신용카드</span></div>
+              <div class="pg-order">
+                <div>상품명<b>커스텀 키캡 세트 2종</b></div>
+                <div>상품금액<b>32,000원</b></div>
+                <div>최종결제금액<b class="amount">32,000원</b></div>
+              </div>
+              <div class="pg-agree">☑ 전체동의 <span>☑ 전자금융거래 이용약관</span><span>☑ 개인정보 수집 및 이용동의</span></div>
+              <div class="pg-main">
+                <div>
+                  <div class="pg-card-grid">
+                    <div class="pg-cell">삼성</div><div class="pg-cell">KB Pay</div><div class="pg-cell">비씨</div><div class="pg-cell selected">스테이블코인</div>
+                    <div class="pg-cell">우리</div><div class="pg-cell">씨티</div><div class="pg-cell">광주</div><div class="pg-cell">전북</div>
+                    <div class="pg-cell">L.pay</div><div class="pg-cell">하나Pay</div><div class="pg-cell">은련</div><div class="pg-cell">그 외 카드</div>
+                  </div>
+                  <div class="pg-installment"><span class="pg-select">일시불 ▾</span><span>□ NH페이 [앱카드] 결제</span></div>
+                </div>
+                <div class="stable-banner" onclick="goSub(1,2)">
+                  <span class="new">NEW</span>
+                  <div class="icon">🪙</div>
+                  <h4>스테이블코인<br>결제</h4>
+                  <p>NHN KCP 디지털월렛으로 QR 결제</p>
+                  <button type="button">선택하고 QR 생성</button>
+                </div>
+              </div>
+            </div>
+            <div class="pg-foot"><button>취소</button><button class="next" onclick="goSub(1,2)">다음</button></div>
+          </div>
+        </div>
+
+        <!-- 1-c QR -->
+        <div class="sub" id="s1-c">
+          <div class="sub-flow"><b>① 쇼핑몰</b><b>② 결제창</b><b class="cur">③ QR 결제</b><b>④ 완료</b></div>
+          <div class="qr-card" onclick="goSub(1,3)" style="cursor:pointer">
+            <h4>🪙 스테이블코인 QR 결제</h4>
+            <div class="ds">디지털월렛 앱으로 QR코드를 스캔해주세요</div>
+            <div class="qr-box">
+              <svg viewBox="0 0 100 100">
+                <rect x="4" y="4" width="24" height="24" fill="#0f172a"/><rect x="9" y="9" width="14" height="14" fill="#fff"/><rect x="12" y="12" width="8" height="8" fill="#0f172a"/>
+                <rect x="72" y="4" width="24" height="24" fill="#0f172a"/><rect x="77" y="9" width="14" height="14" fill="#fff"/><rect x="80" y="12" width="8" height="8" fill="#0f172a"/>
+                <rect x="4" y="72" width="24" height="24" fill="#0f172a"/><rect x="9" y="77" width="14" height="14" fill="#fff"/><rect x="12" y="80" width="8" height="8" fill="#0f172a"/>
+                <g fill="#0f172a">
+                  <rect x="36" y="6" width="6" height="6"/><rect x="48" y="6" width="6" height="6"/><rect x="60" y="10" width="6" height="6"/>
+                  <rect x="40" y="18" width="6" height="6"/><rect x="54" y="20" width="6" height="6"/><rect x="34" y="30" width="6" height="6"/>
+                  <rect x="46" y="34" width="6" height="6"/><rect x="60" y="32" width="6" height="6"/><rect x="72" y="36" width="6" height="6"/>
+                  <rect x="86" y="40" width="6" height="6"/><rect x="8" y="38" width="6" height="6"/><rect x="20" y="42" width="6" height="6"/>
+                  <rect x="36" y="46" width="6" height="6"/><rect x="52" y="48" width="6" height="6"/><rect x="66" y="46" width="6" height="6"/>
+                  <rect x="78" y="52" width="6" height="6"/><rect x="10" y="54" width="6" height="6"/><rect x="26" y="56" width="6" height="6"/>
+                  <rect x="42" y="60" width="6" height="6"/><rect x="58" y="62" width="6" height="6"/><rect x="88" y="60" width="6" height="6"/>
+                  <rect x="36" y="74" width="6" height="6"/><rect x="50" y="78" width="6" height="6"/><rect x="64" y="74" width="6" height="6"/>
+                  <rect x="76" y="82" width="6" height="6"/><rect x="88" y="88" width="6" height="6"/><rect x="52" y="90" width="6" height="6"/>
+                </g>
+              </svg>
+              <div class="laser"></div>
+            </div>
+            <div class="qr-timer" id="qrTimer">결제 대기 중 · 5초</div>
+            <div class="scan-hint"><span class="ph">📱</span> 휴대폰 카메라 · 월렛 앱으로 촬영</div>
+          </div>
+        </div>
+
+        <!-- 1-d 완료 -->
+        <div class="sub" id="s1-d">
+          <div class="sub-flow"><b>① 쇼핑몰</b><b>② 결제창</b><b>③ QR 결제</b><b class="cur">④ 완료</b></div>
+          <div class="done-card">
+            <div class="big-check">✓</div>
+            <h4>결제가 완료되었습니다</h4>
+            <div class="amt">32,000 KRWPS</div>
+            <div class="ds">스테이블코인 결제 · 온체인 기록 완료</div>
+            <div class="rcpt">
+              <div><span>상품</span><span>커스텀 키캡 세트 2종</span></div>
+              <div><span>결제수단</span><span>스테이블코인 (KRWPS)</span></div>
+              <div><span>승인시간</span><span>1.87초</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 2. 오프라인 QR 결제 -->
+    <div class="scene" id="scene-2">
+      <div class="scene-head"><div class="no" style="background:var(--s2)">2</div><h2>오프라인 확장 · QR 결제</h2></div>
+      <p class="scene-desc">NHN KCP 디지털월렛에서 <b>QR로 바로 결제</b> — 매장 QR을 스캔하면 결제가 진행됩니다.</p>
+      <div class="visual">
+
+        <!-- 2-a 월렛 -->
+        <div class="sub on" id="s2-a">
+          <div class="sub-flow"><b class="cur">① 디지털월렛</b><b>② QR 스캔</b><b>③ 결제 진행</b><b>④ 완료</b></div>
+          <div class="phone"><div class="screen">
+            <div class="wallet-img-wrap" id="w1-imgwrap">
+              <img id="imgWallet1" alt="디지털월렛 메인" class="img-fit hidden">
+              <button class="overlay-btn hidden" id="w1-overlaybtn" onclick="goSub(2,1)">📷 QR로 바로 결제</button>
+            </div>
+            <div class="wallet-fb" id="w1-fb">
+              <div style="background:linear-gradient(135deg,#1d4ed8,#7c3aed);color:#fff;padding:10px 12px;margin:-14px -14px 12px;font-weight:800;font-size:13px">NHN KCP Wallet</div>
+              <div class="chip"><div class="t">DIGITAL WALLET</div><div class="v">50,000 KRWPS</div></div>
+              <div class="menu"><i>📤</i><i>📥</i><i>🧾</i><i>⚙️</i></div>
+            </div>
+            <button class="wallet-btn" id="w1-fbbtn" onclick="goSub(2,1)">📷 QR로 바로 결제</button>
+          </div></div>
+        </div>
+
+        <!-- 2-b 스캔 -->
+        <div class="sub" id="s2-b">
+          <div class="sub-flow"><b>① 디지털월렛</b><b class="cur">② QR 스캔</b><b>③ 결제 진행</b><b>④ 완료</b></div>
+          <div class="cam" onclick="goSub(2,2)" style="cursor:pointer">
+            <div class="tt">📷 매장 QR코드를 비춰주세요</div>
+            <div class="cam-frame">
+              <div class="corner c1"></div><div class="corner c2"></div><div class="corner c3"></div><div class="corner c4"></div>
+              <div class="qr-mini">
+                <svg viewBox="0 0 100 100">
+                  <rect x="4" y="4" width="24" height="24" fill="#0f172a"/><rect x="9" y="9" width="14" height="14" fill="#fff"/><rect x="12" y="12" width="8" height="8" fill="#0f172a"/>
+                  <rect x="72" y="4" width="24" height="24" fill="#0f172a"/><rect x="77" y="9" width="14" height="14" fill="#fff"/><rect x="80" y="12" width="8" height="8" fill="#0f172a"/>
+                  <rect x="4" y="72" width="24" height="24" fill="#0f172a"/><rect x="9" y="77" width="14" height="14" fill="#fff"/><rect x="12" y="80" width="8" height="8" fill="#0f172a"/>
+                  <g fill="#0f172a">
+                    <rect x="40" y="10" width="7" height="7"/><rect x="54" y="16" width="7" height="7"/><rect x="36" y="30" width="7" height="7"/>
+                    <rect x="50" y="36" width="7" height="7"/><rect x="66" y="34" width="7" height="7"/><rect x="82" y="42" width="7" height="7"/>
+                    <rect x="12" y="42" width="7" height="7"/><rect x="28" y="48" width="7" height="7"/><rect x="44" y="52" width="7" height="7"/>
+                    <rect x="60" y="56" width="7" height="7"/><rect x="76" y="62" width="7" height="7"/><rect x="40" y="76" width="7" height="7"/>
+                    <rect x="56" y="82" width="7" height="7"/><rect x="72" y="78" width="7" height="7"/><rect x="88" y="86" width="7" height="7"/>
+                  </g>
+                </svg>
+              </div>
+              <div class="laser"></div>
+            </div>
+            <div class="st">QR 인식 중</div>
+          </div>
+        </div>
+
+        <!-- 2-c 결제진행 -->
+        <div class="sub" id="s2-c">
+          <div class="sub-flow"><b>① 디지털월렛</b><b>② QR 스캔</b><b class="cur">③ 결제 진행</b><b>④ 완료</b></div>
+          <img id="imgPaying" alt="결제진행" class="img-shot hidden" onclick="goSub(2,3)" style="cursor:pointer">
+          <div class="qr-card" id="fbPaying" onclick="goSub(2,3)" style="cursor:pointer">
+            <h4>💳 결제 진행 중</h4>
+            <div class="ds">블록체인 트랜잭션 처리 중입니다</div>
+            <div style="width:52px;height:52px;margin:14px auto;border-radius:50%;border:5px solid var(--s2-bg);border-top-color:var(--s2);animation:spin2 .9s linear infinite"></div>
+            <div class="qr-timer">평균 처리 속도 1.77초</div>
+          </div>
+        </div>
+
+        <!-- 2-d 완료 -->
+        <div class="sub" id="s2-d">
+          <div class="sub-flow"><b>① 디지털월렛</b><b>② QR 스캔</b><b>③ 결제 진행</b><b class="cur">④ 완료</b></div>
+          <img id="imgPaid1" alt="결제완료" class="img-shot hidden">
+          <div class="done-card" id="fbPaid1">
+            <div class="big-check">✓</div>
+            <h4>결제가 완료되었습니다</h4>
+            <div class="amt">4,500 KRWPS</div>
+            <div class="ds">오프라인 QR 결제 · 온체인 기록 완료</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 3. 오프라인 바코드 결제 -->
+    <div class="scene" id="scene-3">
+      <div class="scene-head"><div class="no" style="background:var(--s3)">3</div><h2>오프라인 확장 · 바코드 결제</h2></div>
+      <p class="scene-desc">월렛에서 <b>바코드를 생성</b>하면, 매장 스캐너로 찍는 것만으로 결제가 끝납니다.</p>
+      <div class="visual">
+
+        <!-- 3-a 월렛 -->
+        <div class="sub on" id="s3-a">
+          <div class="sub-flow"><b class="cur">① 디지털월렛</b><b>② 바코드 생성</b><b>③ 매장 스캔</b><b>④ 완료</b></div>
+          <div class="phone"><div class="screen">
+            <div class="wallet-img-wrap" id="w2-imgwrap">
+              <img id="imgWallet2" alt="디지털월렛 메인" class="img-fit hidden">
+              <button class="overlay-btn hidden" id="w2-overlaybtn" onclick="goSub(3,1)">▮▯▮ 바코드생성 및 결제</button>
+            </div>
+            <div class="wallet-fb" id="w2-fb">
+              <div style="background:linear-gradient(135deg,#1d4ed8,#7c3aed);color:#fff;padding:10px 12px;margin:-14px -14px 12px;font-weight:800;font-size:13px">NHN KCP Wallet</div>
+              <div class="chip"><div class="t">DIGITAL WALLET</div><div class="v">50,000 KRWPS</div></div>
+              <div class="menu"><i>📤</i><i>📥</i><i>🧾</i><i>⚙️</i></div>
+            </div>
+            <button class="wallet-btn" id="w2-fbbtn" onclick="goSub(3,1)">▮▯▮ 바코드생성 및 결제</button>
+          </div></div>
+        </div>
+
+        <!-- 3-b 바코드 -->
+        <div class="sub" id="s3-b">
+          <div class="sub-flow"><b>① 디지털월렛</b><b class="cur">② 바코드 생성</b><b>③ 매장 스캔</b><b>④ 완료</b></div>
+          <div style="display:flex;align-items:center;gap:22px">
+            <div class="barcode-phone-shot" id="bcCard" onclick="goSub(3,2)" style="cursor:pointer">
+              <img src="../이미지 보관폴더/바코드생성결제.png" alt="바코드 생성 및 결제 화면">
+              <div class="barcode-scan-zone"></div>
+            </div>
+            <div class="pos">
+              <div class="dev">🔫</div>
+              <div class="nm">매장 스캐너</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3-c 완료 -->
+        <div class="sub" id="s3-c">
+          <div class="sub-flow"><b>① 디지털월렛</b><b>② 바코드 생성</b><b>③ 매장 스캔</b><b class="cur">④ 완료</b></div>
+          <img id="imgPaid2" alt="결제완료" class="img-shot hidden">
+          <div class="done-card" id="fbPaid2">
+            <div class="big-check">✓</div>
+            <h4>결제가 완료되었습니다</h4>
+            <div class="amt">12,800 KRWPS</div>
+            <div class="ds">오프라인 바코드 결제 · 온체인 기록 완료</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 완료 -->
+    <div class="scene" id="scene-done">
+      <div class="visual" style="flex-direction:column;padding-top:0">
+        <div class="done-check">🚀</div>
+        <h2 style="font-size:21px;font-weight:800;margin-bottom:6px">온라인과 오프라인, 모든 결제 현장으로</h2>
+        <p style="color:var(--sub);font-size:13px;text-align:center;line-height:1.5">
+          PG 결제창 속 스테이블코인부터 QR · 바코드 결제까지 —<br>
+          NHN KCP의 결제 인프라가 <b>일상의 모든 결제</b>로 확장됩니다.
+        </p>
+        <div class="metrics">
+          <div class="metric"><div class="v">PG 연동</div><div class="k">온라인 확장</div></div>
+          <div class="metric"><div class="v">QR · 바코드</div><div class="k">오프라인 확장</div></div>
+          <div class="metric"><div class="v">&lt; 2초</div><div class="k">평균 결제 속도</div></div>
+        </div>
+        <button class="start-btn" style="margin-top:16px;background:var(--ink);box-shadow:0 6px 16px rgba(15,23,42,.25)" onclick="reset()">↺ 처음부터 다시 보기</button>
+      </div>
+    </div>
+
+    <div class="stage-foot">
+      <span class="status-chip" id="statusChip">대기 중 · 확장 모델 보기를 눌러주세요</span>
+      <div class="pbar"><i id="pfill"></i></div>
+      <div class="ctrl">
+        <button onclick="prev()">◀ 이전</button>
+        <button onclick="next()">다음 ▶</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>@keyframes spin2{to{transform:rotate(360deg)}}</style>
+
+<script>
+/* ══ 이미지 로더 (없으면 폴백 유지) ══ */
+function loadImg(src, onOk){
+  const t = new Image();
+  t.onload = ()=> onOk(src);
+  t.onerror = ()=> console.warn('[이미지 없음] '+src+' — 대체 UI 사용');
+  t.src = src;
+}
+loadImg('../이미지 보관폴더/키캡 시안 2종.png', src=>{
+  const im=document.getElementById('imgKeycap');
+  im.src=src; im.classList.remove('hidden');
+  document.getElementById('fbKeycap').classList.add('hidden');
+});
+loadImg('../이미지 보관폴더/디지털월렛 메인.jpg', src=>{
+  [['imgWallet1','w1'],['imgWallet2','w2']].forEach(([id,p])=>{
+    const im=document.getElementById(id);
+    im.src=src; im.classList.remove('hidden');
+    document.getElementById(p+'-overlaybtn').classList.remove('hidden');
+    document.getElementById(p+'-fb').classList.add('hidden');
+    document.getElementById(p+'-fbbtn').classList.add('hidden');
+  });
+});
+loadImg('../이미지 보관폴더/결제진행.jpg', src=>{
+  const im=document.getElementById('imgPaying');
+  im.src=src; im.classList.remove('hidden');
+  document.getElementById('fbPaying').classList.add('hidden');
+});
+loadImg('../이미지 보관폴더/결제완료.jpg', src=>{
+  [['imgPaid1','fbPaid1'],['imgPaid2','fbPaid2']].forEach(([id,fb])=>{
+    const im=document.getElementById(id);
+    im.src=src; im.classList.remove('hidden');
+    document.getElementById(fb).classList.add('hidden');
+  });
+});
+
+/* ══ 씬 / 서브스테이지 정의 ══ */
+const TOTAL = 4;                       /* 인트로 + 3개 챕터 */
+const DUR = [10000, 22000, 22000, 22000]; /* 첫 화면 10초, 이후 22초 */
+const stepMeta = [
+  {c:'--s0', bg:'--s0-bg', name:'목차 · 확장 모델 소개'},
+  {c:'--s1', bg:'--s1-bg', name:'1/3 · 온라인 PG 연동'},
+  {c:'--s2', bg:'--s2-bg', name:'2/3 · 오프라인 QR 결제'},
+  {c:'--s3', bg:'--s3-bg', name:'3/3 · 오프라인 바코드 결제'}
+];
+/* 씬별 서브스테이지: [id, 지속ms] — 합이 대략 22초 */
+const SUBS = {
+  1: [['s1-a',5000],['s1-b',6000],['s1-c',6000],['s1-d',5000]],
+  2: [['s2-a',5500],['s2-b',6000],['s2-c',4500],['s2-d',6000]],
+  3: [['s3-a',6000],['s3-b',8000],['s3-c',8000]]
+};
+
+let cur=-1, playing=false, timer=null, subTimers=[], qrInt=null;
+const steps=document.querySelectorAll('.step');
+steps.forEach(s=>s.addEventListener('click',()=>{ pause(); show(+s.dataset.i); }));
+
+function clearSubs(){ subTimers.forEach(clearTimeout); subTimers=[]; clearInterval(qrInt); }
+
+function showSub(scene,k){
+  const seq=SUBS[scene]; if(!seq) return;
+  seq.forEach(([id],idx)=>{
+    document.getElementById(id).classList.toggle('on', idx===k);
+  });
+  /* QR 결제 대기 카운트다운 (온라인 씬 3번째 서브) */
+  if(scene===1 && k===2){
+    let s=5; const el=document.getElementById('qrTimer');
+    el.textContent='결제 대기 중 · '+s+'초';
+    clearInterval(qrInt);
+    qrInt=setInterval(()=>{ s--; if(s<=0){clearInterval(qrInt); el.textContent='결제 승인 확인!';} else el.textContent='결제 대기 중 · '+s+'초'; },1000);
+  }
+  /* 바코드 스캔 애니메이션 */
+  if(scene===3 && k===1){ document.getElementById('bcCard').classList.add('scanning'); }
+}
+
+function runSubs(scene,k){
+  clearSubs();
+  showSub(scene,k);
+  const seq=SUBS[scene]; if(!seq) return;
+  for(let i=k;i<seq.length-1;i++){
+    const delay=seq.slice(k,i+1).reduce((a,[,d])=>a+d,0);
+    subTimers.push(setTimeout(()=>showSub(scene,i+1) || postSub(scene,i+1), delay));
+  }
+}
+function postSub(scene,k){
+  if(scene===1&&k===2){} /* handled in showSub */
+}
+/* 수동 클릭으로 서브 진행 (구매하기 / 스테이블코인 / 월렛 버튼) */
+function goSub(scene,k){ if(cur!==scene) show(scene); clearSubs(); showSub(scene,k); postSub(scene,k); }
+
+function show(i){
+  cur=i; clearSubs();
+  document.querySelectorAll('.scene').forEach(s=>s.classList.remove('show'));
+  if(i<0){
+    document.getElementById('scene-start').classList.add('show');
+    setChip('대기 중 · 확장 모델 보기를 눌러주세요','var(--s2-bg)','var(--s2)'); setStrip('var(--line)');
+  } else if(i>=TOTAL){
+    document.getElementById('scene-done').classList.add('show');
+    setChip('✓ 확장 모델 소개 완료','var(--s3-bg)','var(--s3)'); setStrip('var(--s3)'); fireConfetti();
+  } else if(i===0){
+    document.getElementById('scene-start').classList.add('show');
+    const m=stepMeta[0];
+    setChip(m.name,`var(${m.bg})`,`var(${m.c})`); setStrip(`var(${m.c})`);
+  } else {
+    document.getElementById('scene-'+i).classList.add('show');
+    const m=stepMeta[i];
+    setChip(m.name,`var(${m.bg})`,`var(${m.c})`); setStrip(`var(${m.c})`);
+    showSub(i,0);
+  }
+  steps.forEach((s,idx)=>{ s.classList.toggle('done',idx<i||i>=TOTAL); s.classList.toggle('active',idx===i&&i<TOTAL); });
+  document.getElementById('pfill').style.width=Math.max(0,Math.min(1,(i+1)/TOTAL))*100+'%';
+}
+function setChip(t,bg,c){ const el=document.getElementById('statusChip'); el.textContent=t; el.style.background=bg; el.style.color=c; }
+function setStrip(c){ document.getElementById('zoneStrip').style.background=c; }
+
+/* ══ 재생 컨트롤: 씬별 가변 시간 ══ */
+function playCurrentSubs(){ if(playing && SUBS[cur]) runSubs(cur,0); }
+function schedule(){
+  clearTimeout(timer);
+  if(!playing) return;
+  const d = DUR[Math.max(0,cur)] || 22000;
+  timer=setTimeout(()=>{
+    if(cur>=TOTAL-1){ show(TOTAL); pause(); }
+    else{ show(cur+1); playCurrentSubs(); schedule(); }
+  }, d);
+}
+function start(){ show(0); }
+function next(){ pauseTimerOnly(); if(cur<TOTAL) show(cur+1); if(playing){ playCurrentSubs(); schedule(); } if(cur>=TOTAL) pause(); }
+function prev(){ pauseTimerOnly(); if(cur>0) show(cur-1); if(playing){ playCurrentSubs(); schedule(); } }
+function play(){ playing=true; playCurrentSubs(); schedule(); }
+function pauseTimerOnly(){ clearTimeout(timer); }
+function pause(){ playing=false; clearTimeout(timer); }
+function reset(){ pause(); show(-1); }
+
+/* ══ 컨페티 ══ */
+const cvs=document.getElementById('confetti'), ctx=cvs.getContext('2d');
+let pieces=[], confettiRunning=false;
+function sizeCanvas(){ cvs.width=innerWidth; cvs.height=innerHeight; }
+addEventListener('resize',sizeCanvas); sizeCanvas();
+function fireConfetti(){
+  const colors=['#2563eb','#7c3aed','#0891b2','#22d3ee','#f59e0b','#34d399'];
+  pieces=Array.from({length:140},()=>({
+    x:Math.random()*cvs.width, y:-20-Math.random()*cvs.height*.4,
+    w:6+Math.random()*7, h:9+Math.random()*8,
+    c:colors[Math.random()*colors.length|0],
+    vy:2.2+Math.random()*3.2, vx:-1.6+Math.random()*3.2,
+    r:Math.random()*Math.PI, vr:-.12+Math.random()*.24
+  }));
+  if(!confettiRunning){ confettiRunning=true; tick(); }
+}
+function tick(){
+  ctx.clearRect(0,0,cvs.width,cvs.height);
+  pieces.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.r+=p.vr;
+    ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r);
+    ctx.fillStyle=p.c; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); ctx.restore();
+  });
+  pieces=pieces.filter(p=>p.y<cvs.height+30);
+  if(pieces.length) requestAnimationFrame(tick);
+  else{ confettiRunning=false; ctx.clearRect(0,0,cvs.width,cvs.height); }
+}
+show(-1);
+</script>
+</body>
+</html>
