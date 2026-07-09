@@ -743,7 +743,7 @@
 function loadImg(src, onOk){
   const t = new Image();
   t.onload = ()=> onOk(src);
-  t.onerror = ()=> co디지털월렛 메인.png[이미지 없음] '+src+' — 대체 UI 사용');
+  t.onerror = ()=> console.warn('[이미지 없음] '+src+' — 대체 UI 사용');
   t.src = src;
 }
 loadImg('../이미지 보관폴더/키캡 시안 2종.png', src=>{
